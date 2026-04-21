@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <title>Dziennik Kalorii</title>
+    <title>KalorieApp</title>
     
-    <meta name="theme-color" content="#007aff">
+    <meta name="theme-color" content="#2d9f4a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Dziennik">
@@ -18,37 +18,64 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <style>
-        /* Zmienne Kolorów dla Motywów */
+        /* KalorieApp — paleta (MakroAI) */
         :root {
-            --kolor-glowny: #007aff;
+            --kolor-glowny: #39b54a;
+            --kolor-glowny-ciemny: #248a3d;
+            --kolor-akcent-pomarancz: #f5a623;
+            --kolor-akcent-zolty: #fff4d6;
             --kolor-bialko: #e63946;
             --kolor-weglowodany: #457b9d;
             --kolor-tluszcze: #fca311;
-            
-            /* Motyw Jasny (Domyślny) */
-            --kolor-tlo: #f4f4f9;
+
+            --kolor-tlo: #f4f7f6;
+            --kolor-tlo-gradient: linear-gradient(180deg, #f7faf8 0%, #f2f6f4 100%);
             --kolor-tlo-karty: #ffffff;
-            --kolor-tekst-glowny: #2c3e50;
-            --kolor-tekst-drugi: #5a5a5a;
-            --kolor-border: #e8e8e8;
-            --kolor-tlo-tabbar: #ffffff;
-            --kolor-shadow: rgba(0, 0, 0, 0.05);
+            --kolor-tekst-glowny: #17242d;
+            --kolor-tekst-drugi: #6c7e87;
+            --kolor-logo: #1f2f3a;
+            --kolor-border: #d9e2df;
+            --kolor-tlo-tabbar: #eef3f1;
+            --kolor-shadow: rgba(16, 41, 31, 0.08);
+            --ka-ring-track: #e6ece9;
+            --ka-max-width: 430px;
+
+            --kolor-goal-pill-bg: #daf6dc;
+            --kolor-goal-pill-text: #2e9b47;
+            --kolor-result-row-bg: #f7faf8;
+            --kolor-tab-active: #22a841;
+            --kolor-tab-inactive: #6f838b;
+            --kolor-modal-backdrop: rgba(9, 17, 22, 0.45);
+            --kolor-modal-shadow: 0 16px 42px rgba(9, 17, 22, 0.2);
         }
 
         [data-theme="dark"] {
-            --kolor-tlo: #000000;
-            --kolor-tlo-karty: #1c1c1e;
-            --kolor-tekst-glowny: #f0f0f0;
-            --kolor-tekst-drugi: #8e8e93;
-            --kolor-border: #38383a;
-            --kolor-tlo-tabbar: #1c1c1e;
-            --kolor-shadow: rgba(255, 255, 255, 0.05);
+            --kolor-glowny: #3db85c;
+            --kolor-akcent-zolty: #3d3520;
+            --kolor-tlo: #121418;
+            --kolor-tlo-gradient: linear-gradient(180deg, #0f1216 0%, #14181e 100%);
+            --kolor-tlo-karty: #1c2028;
+            --kolor-tekst-glowny: #f0f2f5;
+            --kolor-tekst-drugi: #9aa3b0;
+            --kolor-logo: #f0f2f5;
+            --kolor-border: #2e3440;
+            --kolor-tlo-tabbar: #161a21;
+            --kolor-shadow: rgba(0, 0, 0, 0.35);
+            --ka-ring-track: #3a404c;
+
+            --kolor-goal-pill-bg: #153a1f;
+            --kolor-goal-pill-text: #6fe78a;
+            --kolor-result-row-bg: #232935;
+            --kolor-tab-active: #3db85c;
+            --kolor-tab-inactive: #7b8a93;
+            --kolor-modal-backdrop: rgba(0, 0, 0, 0.6);
+            --kolor-modal-shadow: 0 16px 42px rgba(0, 0, 0, 0.5);
         }
 
         /* Ustawienia Globalne / Native Feel */
         html { overscroll-behavior-y: contain; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
             background-color: var(--kolor-tlo);
             color: var(--kolor-tekst-glowny);
             margin: 0;
@@ -64,26 +91,300 @@
             touch-action: manipulation;
         }
         
-        /* Główny Header */
-        #app-header {
-            background-color: var(--kolor-tlo-karty);
-            border-bottom: 1px solid var(--kolor-border);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* Obudowa mobilna */
+        .app-shell {
+            max-width: var(--ka-max-width);
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        .ka-sticky-head {
             position: sticky;
             top: 0;
             z-index: 100;
+            background: var(--kolor-tlo);
         }
-        #app-header h1 { margin: 0; font-size: 1.5em; color: var(--kolor-glowny); }
+        /* Nagłówek KalorieApp */
+        #app-header {
+            background-color: var(--kolor-tlo);
+            padding: 16px 18px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .ka-brand { display: flex; flex-direction: column; gap: 4px; }
+        .ka-logo {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--kolor-glowny);
+            letter-spacing: -0.02em;
+        }
+        .ka-date {
+            font-size: 0.82rem;
+            color: var(--kolor-tekst-drugi);
+            font-weight: 400;
+        }
+        .ka-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ka-trophy-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--kolor-border);
+            background: var(--kolor-akcent-zolty);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        .ka-trophy-btn span { font-size: 1.35rem; line-height: 1; }
         #theme-toggle {
-            font-size: 1.3em; background: none; border: none;
-            color: var(--kolor-tekst-drugi); cursor: pointer; padding: 5px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--kolor-border);
+            background: var(--kolor-tlo-karty);
+            font-size: 1.15em;
+            color: var(--kolor-tekst-drugi);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ka-header-sep {
+            height: 1px;
+            background: var(--kolor-border);
+            max-width: var(--ka-max-width);
+            margin: 0 auto;
         }
 
+        /* Karta ogólna */
+        .ka-card {
+            background: var(--kolor-tlo-karty);
+            border: 1px solid var(--kolor-border);
+            border-radius: 18px;
+            box-shadow: 0 2px 12px var(--kolor-shadow);
+        }
+
+        /* Seria dni */
+        .ka-streak {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        .ka-streak-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: #fff0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        [data-theme="dark"] .ka-streak-icon { background: #3d2e20; }
+        .ka-streak-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--kolor-tekst-glowny);
+            margin: 0 0 4px;
+        }
+        .ka-streak-title .ka-streak-num { font-size: 1.2em; color: var(--kolor-glowny); }
+        .ka-streak-sub {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--kolor-tekst-drugi);
+        }
+
+        /* Pierścień kalorii */
+        .ka-kcal-card {
+            position: relative;
+            padding: 22px 18px 18px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .ka-ring-wrap {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 14px;
+        }
+        .ka-ring-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        .ka-ring-bg {
+            fill: none;
+            stroke: var(--ka-ring-track);
+            stroke-width: 14;
+        }
+        .ka-ring-fg {
+            fill: none;
+            stroke: var(--kolor-glowny);
+            stroke-width: 14;
+            stroke-linecap: round;
+            stroke-dasharray: 502.65;
+            stroke-dashoffset: 502.65;
+            transition: stroke-dashoffset 0.45s ease, stroke 0.2s;
+        }
+        .ka-ring-fg.over { stroke: #ff3b30; }
+        .ka-ring-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        #kolo-pozostalo {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--kolor-tekst-glowny);
+            line-height: 1.1;
+        }
+        .ka-ring-sub {
+            font-size: 0.9rem;
+            color: var(--kolor-tekst-drugi);
+            margin-top: 4px;
+        }
+        .ka-kcal-line {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--kolor-tekst-drugi);
+            font-weight: 500;
+        }
+        .ka-hidden-meter {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+        }
+        .ka-hidden-meter .progress-bar-inner { height: 4px; }
+
+        /* Makra — trzy kolumny */
+        .ka-macro-row {
+            display: flex;
+            padding: 16px 8px;
+            margin-bottom: 12px;
+        }
+        .ka-mcol {
+            flex: 1;
+            padding: 0 8px;
+            text-align: center;
+        }
+        .ka-mcol-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--kolor-tekst-drugi);
+            margin: 0 0 8px;
+        }
+        .ka-mcol-val {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--kolor-tekst-glowny);
+            margin-bottom: 8px;
+        }
+        .ka-mcol-val span { color: var(--kolor-tekst-drugi); font-weight: 600; }
+        .ka-macro-row .progress-bar {
+            height: 6px;
+            border-radius: 4px;
+        }
+
+        /* Karty posiłków */
+        .kontener-posilku {
+            background-color: var(--kolor-tlo-karty);
+            border: 1px solid var(--kolor-border);
+            border-radius: 18px;
+            padding: 14px 16px 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px var(--kolor-shadow);
+        }
+        .ka-meal-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ka-meal-emoji {
+            font-size: 1.75rem;
+            line-height: 1;
+            width: 40px;
+            text-align: center;
+        }
+        .ka-meal-text { flex: 1; min-width: 0; }
+        .naglowek-posilku {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+        }
+        .naglowek-posilku h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+        .naglowek-posilku .makro-posilku {
+            display: block;
+            font-size: 0.82rem;
+            color: var(--kolor-tekst-drugi);
+            margin-top: 2px;
+        }
+        .ka-meal-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ka-btn-add {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            border: none;
+            background: var(--kolor-glowny);
+            color: #fff;
+            font-size: 1.6rem;
+            font-weight: 300;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .ka-btn-add:active { background: var(--kolor-glowny-ciemny); }
+        .ka-btn-scan {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--kolor-border);
+            background: var(--kolor-tlo);
+            color: var(--kolor-tekst-drugi);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .ka-meal-hint {
+            text-align: center;
+            font-size: 0.88rem;
+            color: var(--kolor-tekst-drugi);
+            margin: 14px 0 0;
+            padding-top: 10px;
+            border-top: 1px solid var(--kolor-border);
+        }
+        .ka-meal-hint.hidden { display: none; }
+
         /* Struktura Ekranów */
-        main { padding: 15px; }
+        main { padding: 14px 16px 20px; }
         .screen { display: none; }
         .screen.active { display: block; }
 
@@ -92,8 +393,9 @@
             background-color: var(--kolor-tlo-karty);
             margin-bottom: 20px;
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px var(--kolor-shadow);
+            border-radius: 18px;
+            border: 1px solid var(--kolor-border);
+            box-shadow: 0 2px 12px var(--kolor-shadow);
             transition: background-color 0.3s ease;
         }
         .container h2 {
@@ -117,6 +419,7 @@
         .progress-bar-inner { height: 100%; width: 0%; background-color: var(--kolor-glowny); transition: width 0.3s ease; }
         #progress-kalorie .progress-bar-label span:first-child { font-size: 1.1em; }
         #progress-kalorie .progress-bar { height: 14px; }
+        #progress-kalorie.ka-hidden-meter .progress-bar-inner { background-color: var(--kolor-glowny); }
         #progress-bialko .progress-bar-inner { background-color: var(--kolor-bialko); }
         #progress-weglowodany .progress-bar-inner { background-color: var(--kolor-weglowodany); }
         #progress-tluszcze .progress-bar-inner { background-color: var(--kolor-tluszcze); }
@@ -125,26 +428,6 @@
             font-size: 1.1em; display: none;
         }
 
-        /* Style Posiłków (z Ikonami) */
-        .kontener-posilku {
-            background-color: var(--kolor-tlo-karty);
-            border: 1px solid var(--kolor-border);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .naglowek-posilku {
-            display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 15px;
-        }
-        .naglowek-posilku h3 { margin: 0; text-align: left; color: var(--kolor-tekst-glowny); font-size: 1.2em; }
-        .naglowek-posilku .makro-posilku { font-size: 0.9em; color: var(--kolor-tekst-drugi); }
-        .akcje-posilku-ikony button {
-            background: none; border: none; font-size: 1.4em;
-            color: var(--kolor-glowny); cursor: pointer;
-            padding: 5px; margin-left: 10px;
-        }
-        
         /* Lista produktów */
         .lista-produktow { list-style: none; padding: 0; margin: 0; }
         .lista-produktow li {
@@ -211,6 +494,18 @@
             background-color: var(--kolor-glowny); color: white; border: none;
             border-radius: 8px; cursor: pointer; transition: background-color 0.3s ease;
         }
+        .ka-header-actions button,
+        .ka-meal-actions button,
+        .ka-trophy-btn,
+        #tab-bar .tab-button,
+        .przycisk-usun,
+        #przycisk-zamknij-skaner {
+            width: auto;
+        }
+        .modal-content form button[type="submit"],
+        .modal-content > button:not(.przycisk-usun) {
+            width: 100%;
+        }
         .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         
         /* Styl Modala (Wyszukiwanie/Dodawanie) */
@@ -254,6 +549,65 @@
             z-index: 1001;
         }
 
+        /* Live camera modal dla AI */
+        #modal-kamera {
+            align-items: stretch;
+            justify-content: stretch;
+            background-color: #000;
+            padding: 0;
+        }
+        #kamera-wrap {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: var(--ka-max-width);
+            margin: 0 auto;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #kamera-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+        #kamera-kontrolki {
+            position: absolute;
+            bottom: 32px;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 24px;
+            z-index: 1002;
+        }
+        .kamera-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+            cursor: pointer;
+            padding: 0;
+        }
+        .kamera-btn-shutter {
+            width: 78px;
+            height: 78px;
+            background: #fff;
+            border: 5px solid rgba(255, 255, 255, 0.45);
+            box-shadow: 0 0 0 2px #fff inset;
+        }
+        .kamera-btn-shutter:active { transform: scale(0.94); }
+
         /* Styl Nawigacji Tab Bar */
         #tab-bar {
             position: fixed; bottom: 0; left: 0; right: 0;
@@ -275,110 +629,354 @@
         .tab-button i { font-size: 1.8em; margin-bottom: 2px; }
         .tab-button.active { color: var(--kolor-glowny); }
 
+        /* MakroAI visual override */
+        body {
+            background: var(--kolor-tlo-gradient);
+            padding-bottom: 96px;
+        }
+        .app-shell {
+            max-width: var(--ka-max-width);
+            padding: 0 12px 12px;
+            box-sizing: border-box;
+        }
+        #app-header {
+            padding: 14px 8px 12px;
+            align-items: center;
+        }
+        .ka-brand-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .ka-app-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: var(--kolor-glowny);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .ka-logo {
+            color: var(--kolor-logo);
+            font-size: 1.9rem;
+            letter-spacing: -0.03em;
+        }
+        .ka-greeting {
+            margin: 2px 0 0;
+            color: var(--kolor-tekst-drugi);
+            font-size: 1rem;
+        }
+        .ka-date { display: none; }
+        #theme-toggle {
+            width: 36px;
+            height: 36px;
+            border: 0;
+            background: transparent;
+            color: var(--kolor-tekst-glowny);
+            font-size: 1rem;
+        }
+        .ka-header-sep { opacity: 0.7; }
+        main { padding: 12px 2px 18px; }
+        .ka-streak { display: none; }
+        .ka-card,
+        .kontener-posilku {
+            border-radius: 26px;
+            border: 2px solid var(--kolor-border);
+            box-shadow: none;
+        }
+        .ka-kcal-card {
+            padding: 26px 16px 18px;
+        }
+        .ka-ring-wrap {
+            width: 232px;
+            height: 232px;
+            margin-bottom: 8px;
+        }
+        .ka-ring-bg,
+        .ka-ring-fg {
+            stroke-width: 12;
+        }
+        .ka-ring-caption {
+            font-size: 0.66rem;
+            letter-spacing: 0.15em;
+            color: var(--kolor-tekst-drugi);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        #kolo-pozostalo {
+            font-size: 3.2rem;
+            letter-spacing: 0.03em;
+        }
+        .ka-ring-sub {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--kolor-tekst-drugi);
+        }
+        .ka-kcal-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .ka-goal-pill {
+            background: var(--kolor-goal-pill-bg);
+            color: var(--kolor-goal-pill-text);
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+        .ka-macro-row {
+            display: block;
+            padding: 18px 18px 14px;
+        }
+        .ka-macro-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+        .ka-macro-header h3 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: -0.03em;
+        }
+        .ka-macro-header span {
+            color: var(--kolor-tekst-drugi);
+            font-size: 0.85rem;
+        }
+        .ka-mrow {
+            margin: 14px 0;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            column-gap: 10px;
+        }
+        .ka-mcol-label {
+            margin: 0;
+            font-size: 1.3rem;
+            letter-spacing: 0.03em;
+            text-align: left;
+        }
+        .ka-mcol-val {
+            margin: 0;
+            font-size: 2rem;
+            text-align: right;
+        }
+        .ka-mrow .progress-bar {
+            grid-column: 1 / span 2;
+            margin-top: 8px;
+            height: 8px;
+        }
+        .kontener-posilku {
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .naglowek-posilku h3 {
+            font-size: 1rem;
+        }
+        .ka-btn-add {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+        }
+        #tab-bar {
+            max-width: var(--ka-max-width);
+            margin: 0 auto;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 22px 22px 0 0;
+            height: 84px;
+            padding-top: 10px;
+            background: var(--kolor-tlo-tabbar);
+        }
+        .tab-button {
+            color: var(--kolor-tab-inactive);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .tab-button i {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+        .tab-button.active {
+            color: var(--kolor-tab-active);
+        }
+        .modal-overlay {
+            backdrop-filter: blur(2px);
+            background-color: var(--kolor-modal-backdrop);
+        }
+        .modal-content {
+            border-radius: 20px;
+            border: 1px solid var(--kolor-border);
+            box-shadow: var(--kolor-modal-shadow);
+        }
+        .modal-content h3 {
+            font-size: 1.2rem;
+            margin-bottom: 14px;
+        }
+        #wyniki-wyszukiwania li {
+            border-radius: 10px;
+            padding: 10px 8px;
+            margin-bottom: 8px;
+            background: var(--kolor-result-row-bg);
+        }
+        .przycisk-usun {
+            width: 28px;
+            height: 28px;
+        }
+
     </style>
 </head>
 <body>
 
+    <div class="app-shell">
+    <div class="ka-sticky-head">
     <header id="app-header">
-        <h1>Dziennik</h1>
-        <button id="theme-toggle">
-            <i class="bi bi-moon-fill"></i> 
-        </button>
+        <div class="ka-brand">
+            <div class="ka-brand-row">
+                <span class="ka-app-icon" aria-hidden="true">✦</span>
+                <p class="ka-logo">MakroAI</p>
+            </div>
+            <p class="ka-greeting">Cześć, Brajan!</p>
+            <p class="ka-date" id="naglowek-data"></p>
+        </div>
+        <div class="ka-header-actions">
+            <button type="button" id="theme-toggle" aria-label="Przełącz motyw" title="Przełącz motyw">
+                <i class="bi bi-moon-stars-fill"></i>
+            </button>
+        </div>
     </header>
+    <div class="ka-header-sep" aria-hidden="true"></div>
+    </div>
 
     <main id="app-content">
 
         <div id="screen-dziennik" class="screen active">
             
-            <div class="container" id="podsumowanie-dnia">
-                <h2>Podsumowanie Dnia</h2>
-                <div class="progress-bar-container" id="progress-kalorie">
-                    <div class="progress-bar-label">
-                        <span>Kalorie</span>
-                        <span><strong id="suma-kalorie">0</strong> / <span id="cel-kalorie">0</span> kcal</span>
+            <div id="podsumowanie-dnia">
+                <div class="ka-card ka-kcal-card">
+                    <div class="ka-ring-wrap">
+                        <svg class="ka-ring-svg" viewBox="0 0 200 200" aria-hidden="true">
+                            <circle class="ka-ring-bg" cx="100" cy="100" r="80"></circle>
+                            <circle id="kcal-ring-progress" class="ka-ring-fg" cx="100" cy="100" r="80"></circle>
+                        </svg>
+                        <div class="ka-ring-center">
+                            <span class="ka-ring-caption">POZOSTAŁO</span>
+                            <span id="kolo-pozostalo">0</span>
+                            <span class="ka-ring-sub">kcal</span>
+                        </div>
                     </div>
-                    <div class="progress-bar"><div class="progress-bar-inner"></div></div>
-                </div>
-                <div class="progress-bar-container" id="progress-bialko">
-                    <div class="progress-bar-label">
-                        <span>Białko</span>
-                        <span><strong id="suma-bialko">0</strong> / <span id="cel-bialko">0</span> g</span>
+                    <p class="ka-kcal-line"><strong id="suma-kalorie">0</strong> / <span id="cel-kalorie">0</span> kcal <span class="ka-goal-pill">UTRZYMANIE</span></p>
+                    <div class="progress-bar-container ka-hidden-meter" id="progress-kalorie" aria-hidden="true">
+                        <div class="progress-bar"><div class="progress-bar-inner"></div></div>
                     </div>
-                    <div class="progress-bar"><div class="progress-bar-inner"></div></div>
                 </div>
-                <div class="progress-bar-container" id="progress-weglowodany">
-                    <div class="progress-bar-label">
-                        <span>Węglowodany</span>
-                        <span><strong id="suma-weglowodany">0</strong> / <span id="cel-weglowodany">0</span> g</span>
+
+                <div class="ka-card ka-macro-row">
+                    <div class="ka-macro-header">
+                        <h3>Makroskładniki</h3>
+                        <span id="makro-data">wtorek, 21 kwietnia</span>
                     </div>
-                    <div class="progress-bar"><div class="progress-bar-inner"></div></div>
-                </div>
-                <div class="progress-bar-container" id="progress-tluszcze">
-                    <div class="progress-bar-label">
-                        <span>Tłuszcze</span>
-                        <span><strong id="suma-tluszcze">0</strong> / <span id="cel-tluszcze">0</span> g</span>
+                    <div class="ka-mrow progress-bar-container" id="progress-bialko">
+                        <p class="ka-mcol-label">BIAŁKO</p>
+                        <p class="ka-mcol-val"><strong id="suma-bialko">0</strong><span>/<span id="cel-bialko">0</span>g</span></p>
+                        <div class="progress-bar"><div class="progress-bar-inner"></div></div>
                     </div>
-                    <div class="progress-bar"><div class="progress-bar-inner"></div></div>
+                    <div class="ka-mrow progress-bar-container" id="progress-weglowodany">
+                        <p class="ka-mcol-label">WĘGLOWODANY</p>
+                        <p class="ka-mcol-val"><strong id="suma-weglowodany">0</strong><span>/<span id="cel-weglowodany">0</span>g</span></p>
+                        <div class="progress-bar"><div class="progress-bar-inner"></div></div>
+                    </div>
+                    <div class="ka-mrow progress-bar-container" id="progress-tluszcze">
+                        <p class="ka-mcol-label">TŁUSZCZ</p>
+                        <p class="ka-mcol-val"><strong id="suma-tluszcze">0</strong><span>/<span id="cel-tluszcze">0</span>g</span></p>
+                        <div class="progress-bar"><div class="progress-bar-inner"></div></div>
+                    </div>
                 </div>
-                <div id="komunikat-pozostalo">
-                    Pozostało: <strong id="pozostalo-kalorie" style="color: #34c759;">0 kcal</strong>
+                <div id="komunikat-pozostalo" style="display:none;">
+                    <strong id="pozostalo-kalorie">0 kcal</strong>
                 </div>
             </div>
 
-            <div class="kontener-posilku">
-                <div class="naglowek-posilku">
-                    <div>
-                        <h3 id="naglowek-sniadanie">Śniadanie</h3>
-                        <span id="makro-sniadanie" class="makro-posilku">0 kcal</span>
+            <div class="kontener-posilku" data-posilek="sniadanie">
+                <div class="ka-meal-top">
+                    <span class="ka-meal-emoji" aria-hidden="true">🌅</span>
+                    <div class="ka-meal-text naglowek-posilku">
+                        <div>
+                            <h3 id="naglowek-sniadanie">Śniadanie</h3>
+                            <span id="makro-sniadanie" class="makro-posilku">0 kcal</span>
+                        </div>
                     </div>
-                    <div class="akcje-posilku-ikony">
-                        <button class="przycisk-szukaj-posilek" data-posilek="sniadanie"><i class="bi bi-search"></i></button>
-                        <button class="przycisk-skanuj-posilek" data-posilek="sniadanie"><i class="bi bi-upc-scan"></i></button>
+                    <div class="ka-meal-actions">
+                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="sniadanie" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
+                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="sniadanie" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
+                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="sniadanie" title="Dodaj" aria-label="Dodaj posiłek">+</button>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-sniadanie"></ul>
+                <p class="ka-meal-hint">Dodaj coś pysznego! 🤩</p>
             </div>
             
-            <div class="kontener-posilku">
-                <div class="naglowek-posilku">
-                    <div>
-                        <h3 id="naglowek-obiad">Obiad</h3>
-                        <span id="makro-obiad" class="makro-posilku">0 kcal</span>
+            <div class="kontener-posilku" data-posilek="obiad">
+                <div class="ka-meal-top">
+                    <span class="ka-meal-emoji" aria-hidden="true">☀️</span>
+                    <div class="ka-meal-text naglowek-posilku">
+                        <div>
+                            <h3 id="naglowek-obiad">Obiad</h3>
+                            <span id="makro-obiad" class="makro-posilku">0 kcal</span>
+                        </div>
                     </div>
-                    <div class="akcje-posilku-ikony">
-                        <button class="przycisk-szukaj-posilek" data-posilek="obiad"><i class="bi bi-search"></i></button>
-                        <button class="przycisk-skanuj-posilek" data-posilek="obiad"><i class="bi bi-upc-scan"></i></button>
+                    <div class="ka-meal-actions">
+                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="obiad" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
+                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="obiad" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
+                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="obiad" title="Dodaj" aria-label="Dodaj posiłek">+</button>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-obiad"></ul>
+                <p class="ka-meal-hint">Dodaj coś pysznego! 🤩</p>
             </div>
             
-            <div class="kontener-posilku">
-                <div class="naglowek-posilku">
-                    <div>
-                        <h3 id="naglowek-kolacja">Kolacja</h3>
-                        <span id="makro-kolacja" class="makro-posilku">0 kcal</span>
+            <div class="kontener-posilku" data-posilek="kolacja">
+                <div class="ka-meal-top">
+                    <span class="ka-meal-emoji" aria-hidden="true">🌙</span>
+                    <div class="ka-meal-text naglowek-posilku">
+                        <div>
+                            <h3 id="naglowek-kolacja">Kolacja</h3>
+                            <span id="makro-kolacja" class="makro-posilku">0 kcal</span>
+                        </div>
                     </div>
-                    <div class="akcje-posilku-ikony">
-                        <button class="przycisk-szukaj-posilek" data-posilek="kolacja"><i class="bi bi-search"></i></button>
-                        <button class="przycisk-skanuj-posilek" data-posilek="kolacja"><i class="bi bi-upc-scan"></i></button>
+                    <div class="ka-meal-actions">
+                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="kolacja" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
+                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="kolacja" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
+                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="kolacja" title="Dodaj" aria-label="Dodaj posiłek">+</button>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-kolacja"></ul>
+                <p class="ka-meal-hint">Dodaj coś pysznego! 🤩</p>
             </div>
             
-            <div class="kontener-posilku">
-                <div class="naglowek-posilku">
-                    <div>
-                        <h3 id="naglowek-przekaski">Przekąski</h3>
-                        <span id="makro-przekaski" class="makro-posilku">0 kcal</span>
+            <div class="kontener-posilku" data-posilek="przekaski">
+                <div class="ka-meal-top">
+                    <span class="ka-meal-emoji" aria-hidden="true">🍪</span>
+                    <div class="ka-meal-text naglowek-posilku">
+                        <div>
+                            <h3 id="naglowek-przekaski">Przekąska</h3>
+                            <span id="makro-przekaski" class="makro-posilku">0 kcal</span>
+                        </div>
                     </div>
-                    <div class="akcje-posilku-ikony">
-                        <button class="przycisk-szukaj-posilek" data-posilek="przekaski"><i class="bi bi-search"></i></button>
-                        <button class="przycisk-skanuj-posilek" data-posilek="przekaski"><i class="bi bi-upc-scan"></i></button>
+                    <div class="ka-meal-actions">
+                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="przekaski" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
+                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="przekaski" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
+                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="przekaski" title="Dodaj" aria-label="Dodaj posiłek">+</button>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-przekaski"></ul>
+                <p class="ka-meal-hint">Dodaj coś pysznego! 🤩</p>
             </div>
             
         </div> <div id="screen-cel" class="screen">
@@ -410,7 +1008,24 @@
                 <div id="wynik-kalkulatora" style="display: none; margin-top: 20px; padding: 15px; background: var(--kolor-tlo); border-radius: 8px;">
                 </div>
             </div>
-            
+
+            <div class="container">
+                <h2>AI rozpoznawanie jedzenia</h2>
+                <p style="font-size: 0.9em; color: var(--kolor-tekst-drugi); margin-top: 0; text-align: center;">
+                    Klucz Google Gemini jest używany do rozpoznawania dań ze zdjęć.
+                    Pobierz bezpłatny klucz w
+                    <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--kolor-glowny);">Google AI Studio</a>.
+                </p>
+                <form id="formularz-gemini-key-ustawienia">
+                    <div class="form-grupa">
+                        <label for="input-gemini-key-ustawienia">Klucz Gemini API:</label>
+                        <input type="password" id="input-gemini-key-ustawienia" placeholder="AIza..." autocomplete="off">
+                    </div>
+                    <button type="submit">Zapisz klucz</button>
+                </form>
+                <p id="status-klucza-ai" style="text-align: center; margin-top: 10px; font-size: 0.9em; color: var(--kolor-tekst-drugi);"></p>
+            </div>
+
         </div> </main> <nav id="tab-bar">
         <button class="tab-button active" data-screen="dziennik">
             <i class="bi bi-list-ul"></i>
@@ -421,7 +1036,7 @@
             <span>Mój Cel</span>
         </button>
     </nav>
-
+    </div>
 
     <div id="modal-dodaj" class="modal-overlay">
         <div class="modal-content">
@@ -454,6 +1069,66 @@
     <div id="kontener-skanera" class="modal-overlay">
         <div id="skaner-qr-reader"></div>
         <button id="przycisk-zamknij-skaner">Anuluj</button>
+    </div>
+
+    <input type="file" id="foto-input" accept="image/*" capture="environment" hidden>
+
+    <div id="modal-kamera" class="modal-overlay">
+        <div id="kamera-wrap">
+            <video id="kamera-video" autoplay playsinline muted></video>
+            <div id="kamera-kontrolki">
+                <button type="button" id="przycisk-anuluj-kamera" class="kamera-btn kamera-btn-anuluj" aria-label="Anuluj"><i class="bi bi-x-lg"></i></button>
+                <button type="button" id="przycisk-zrob-zdjecie" class="kamera-btn kamera-btn-shutter" aria-label="Zrób zdjęcie"></button>
+                <button type="button" id="przycisk-przelacz-kamera" class="kamera-btn kamera-btn-switch" aria-label="Przełącz kamerę"><i class="bi bi-arrow-repeat"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-gemini-key" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Klucz Google Gemini API</h3>
+            <p style="font-size: 0.9em; color: var(--kolor-tekst-drugi); margin-top: 0;">
+                Aby rozpoznawać jedzenie ze zdjęć, potrzebujesz bezpłatnego klucza Gemini.
+                Pobierzesz go w
+                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--kolor-glowny);">Google AI Studio</a>.
+                Klucz jest zapisywany tylko w Twojej przeglądarce.
+            </p>
+            <form id="formularz-gemini-key">
+                <div class="form-grupa">
+                    <label for="input-gemini-key">Wklej klucz:</label>
+                    <input type="password" id="input-gemini-key" placeholder="AIza..." autocomplete="off" required>
+                </div>
+                <button type="submit">Zapisz klucz</button>
+            </form>
+            <button id="przycisk-anuluj-gemini-key" style="background-color: #8e8e93; margin-top: 10px;">Anuluj</button>
+        </div>
+    </div>
+
+    <div id="modal-ai-wynik" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="naglowek-ai-wynik">Rozpoznane danie</h3>
+            <div id="ai-wynik-status" style="text-align: center; color: var(--kolor-tekst-drugi); margin-bottom: 10px;"></div>
+            <img id="ai-wynik-thumb" alt="Podgląd zdjęcia" style="display:none; width: 100%; max-height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 12px;">
+            <form id="formularz-ai-wynik">
+                <div class="form-grupa">
+                    <label for="ai-nazwa">Nazwa:</label>
+                    <input type="text" id="ai-nazwa" placeholder="Nazwa dania" required>
+                </div>
+                <div class="form-grid-2">
+                    <input type="number" id="ai-waga" step="1" placeholder="Waga (g)">
+                    <input type="number" id="ai-kalorie" step="1" placeholder="Kcal *" required>
+                    <input type="number" id="ai-bialko" step="0.1" placeholder="Białko (g)">
+                    <input type="number" id="ai-weglowodany" step="0.1" placeholder="Węgle (g)">
+                    <input type="number" id="ai-tluszcze" step="0.1" placeholder="Tłuszcz (g)">
+                    <input type="number" id="ai-pewnosc" step="1" placeholder="Pewność (%)" disabled>
+                </div>
+                <p style="font-size: 0.82em; color: var(--kolor-tekst-drugi); margin: 10px 0;">
+                    Wyniki AI są szacunkowe — możesz je edytować przed dodaniem.
+                </p>
+                <button type="submit" style="margin-top: 5px;">Dodaj do posiłku</button>
+            </form>
+            <button id="przycisk-anuluj-ai-wynik" style="background-color: #8e8e93; margin-top: 10px;">Anuluj</button>
+        </div>
     </div>
 
 
@@ -492,16 +1167,18 @@
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 
 
-        // === Logika Motywu Ciemnego (ORYGINALNA) ===
+        // === Logika Motywu Ciemnego ===
         function ustawMotyw(motyw) {
             if (motyw === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 themeToggleIcon.className = 'bi bi-sun-fill';
-                metaThemeColor.content = "#000000";
+                themeToggle.setAttribute('aria-label', 'Włącz motyw jasny');
+                metaThemeColor.content = "#121418";
             } else {
                 document.documentElement.setAttribute('data-theme', 'light');
-                themeToggleIcon.className = 'bi bi-moon-fill';
-                metaThemeColor.content = "#007aff";
+                themeToggleIcon.className = 'bi bi-moon-stars-fill';
+                themeToggle.setAttribute('aria-label', 'Włącz motyw ciemny');
+                metaThemeColor.content = "#2d9f4a";
             }
             localStorage.setItem(kluczStorageTheme, motyw);
         }
@@ -511,7 +1188,19 @@
         });
         const zapisanyMotyw = localStorage.getItem(kluczStorageTheme) || 'light';
         ustawMotyw(zapisanyMotyw);
-        
+
+        function formatujDatePL(d) {
+            const dni = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+            const mies = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+            return `${dni[d.getDay()]}, ${d.getDate()} ${mies[d.getMonth()]}`;
+        }
+        const naglowekDataEl = document.getElementById('naglowek-data');
+        if (naglowekDataEl) naglowekDataEl.textContent = formatujDatePL(new Date());
+        const makroDataEl = document.getElementById('makro-data');
+        if (makroDataEl) makroDataEl.textContent = formatujDatePL(new Date());
+
+        const KCAL_RING_LEN = 502.65;
+
         
         // === Logika Nawigacji Tab Bar (ORYGINALNA) ===
         tabBar.addEventListener('click', (e) => {
@@ -590,6 +1279,9 @@
                 
                 ulElement.innerHTML = htmlListy;
                 document.getElementById(`makro-${kluczPosilku}`).textContent = `${sumaPosilku.kalorie.toFixed(0)} kcal`;
+                const karta = ulElement.closest('.kontener-posilku');
+                const podpowiedz = karta && karta.querySelector('.ka-meal-hint');
+                if (podpowiedz) podpowiedz.classList.toggle('hidden', lista.length > 0);
                 
                 sumaTotalna.kalorie += sumaPosilku.kalorie;
                 sumaTotalna.bialko += sumaPosilku.bialko;
@@ -621,13 +1313,35 @@
             ustawProgres('tluszcze', sumaTotalna.tluszcze, cel.tluszcze);
             
             const pozostalo = cel.kalorie - sumaTotalna.kalorie;
-            const komunikatPozostalo = document.getElementById('komunikat-pozostalo');
-            if (cel.kalorie > 0) {
-                komunikatPozostalo.style.display = 'block';
-                document.getElementById('pozostalo-kalorie').textContent = `${pozostalo.toFixed(0)} kcal`;
-                document.getElementById('pozostalo-kalorie').style.color = (pozostalo < 0) ? '#ff3b30' : '#34c759';
-            } else {
-                komunikatPozostalo.style.display = 'none';
+            const koloPoz = document.getElementById('kolo-pozostalo');
+            if (koloPoz) {
+                if (cel.kalorie > 0) {
+                    koloPoz.textContent = pozostalo < 0 ? '0' : String(Math.round(pozostalo));
+                    koloPoz.style.color = pozostalo < 0 ? '#ff3b30' : '';
+                } else {
+                    koloPoz.textContent = '—';
+                    koloPoz.style.color = '';
+                }
+            }
+            const ring = document.getElementById('kcal-ring-progress');
+            if (ring) {
+                if (cel.kalorie > 0) {
+                    if (sumaTotalna.kalorie >= cel.kalorie) {
+                        ring.style.strokeDashoffset = '0';
+                        ring.classList.add('over');
+                    } else {
+                        ring.style.strokeDashoffset = String(KCAL_RING_LEN * (1 - sumaTotalna.kalorie / cel.kalorie));
+                        ring.classList.remove('over');
+                    }
+                } else {
+                    ring.style.strokeDashoffset = String(KCAL_RING_LEN);
+                    ring.classList.remove('over');
+                }
+            }
+            const pk = document.getElementById('pozostalo-kalorie');
+            if (pk && cel.kalorie > 0) {
+                pk.textContent = `${pozostalo.toFixed(0)} kcal`;
+                pk.style.color = (pozostalo < 0) ? '#ff3b30' : '#34c759';
             }
         }
 
@@ -715,47 +1429,173 @@
             return true;
         }
 
-        // Wyszukiwanie po NAZWIE
-        formularzWyszukiwania.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const wyrazenie = inputWyszukiwania.value;
-            if (wyrazenie.length < 3) return;
-            statusWyszukiwania.textContent = 'Ładowanie...';
-            wynikiWyszukiwania.innerHTML = '';
-            try {
-                const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(wyrazenie)}&search_simple=1&action=process&json=1&page_size=5`;
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.products && data.products.length > 0) {
-                    statusWyszukiwania.textContent = `Wyniki dla: "${wyrazenie}"`;
-                    data.products.forEach(produkt => {
-                        const p = produkt.nutriments;
-                        const nazwa = produkt.product_name || 'Brak nazwy';
-                        const producent = produkt.brands || '';
-                        const kalorieNa100g = p['energy-kcal_100g'] || 0;
-                        const bialkoNa100g = p.proteins_100g || 0;
-                        const weglowodanyNa100g = p.carbohydrates_100g || 0;
-                        const tluszczeNa100g = p.fat_100g || 0;
-                        if (kalorieNa100g > 0) {
-                            const li = document.createElement('li');
-                            li.innerHTML = `
-                                <div class="info">
-                                    <strong>${nazwa}</strong> ${producent} (${kalorieNa100g.toFixed(0)} kcal / 100g)
-                                    <div class="info-makro">
-                                        <span class="b">B:</span> ${bialkoNa100g}g | <span class="w">W:</span> ${weglowodanyNa100g}g | <span class="t">T:</span> ${tluszczeNa100g}g
-                                    </div>
-                                </div>
-                                <button class="przycisk-maly przycisk-dodaj-z-wyszukiwania" 
-                                        data-nazwa="${nazwa} (${producent})"
-                                        data-kalorie100g="${kalorieNa100g}" data-bialko100g="${bialkoNa100g}"
-                                        data-weglowodany100g="${weglowodanyNa100g}" data-tluszcze100g="${tluszczeNa100g}">
-                                    <i class="bi bi-plus" style="font-size: 1.2em; vertical-align: middle;"></i>
-                                </button>`;
-                            wynikiWyszukiwania.appendChild(li);
-                        }
+        function nutrimentsNa100g(p) {
+            if (!p) return { kcal: 0, b: 0, w: 0, t: 0 };
+            let kcal = p['energy-kcal_100g'];
+            if (kcal == null || kcal === '') {
+                const kj = p['energy-kj_100g'];
+                if (kj != null && kj !== '') kcal = kj / 4.184;
+            }
+            kcal = parseFloat(kcal) || 0;
+            return {
+                kcal,
+                b: parseFloat(p.proteins_100g) || 0,
+                w: parseFloat(p.carbohydrates_100g) || 0,
+                t: parseFloat(p.fat_100g) || 0
+            };
+        }
+
+        // Szybki endpoint v2 OFF z poprawnym CORS. pl-domain priorytetowo dla PL produktów.
+        const OFF_ENDPOINTS = [
+            'https://pl.openfoodfacts.org/api/v2/search',
+            'https://world.openfoodfacts.org/api/v2/search'
+        ];
+        const OFF_FIELDS = 'product_name,product_name_pl,product_name_en,brands,nutriments';
+
+        async function probujEndpoint(wyrazenie) {
+            const params = new URLSearchParams({
+                search_terms: wyrazenie,
+                fields: OFF_FIELDS,
+                page_size: '30',
+                lc: 'pl',
+                sort_by: 'popularity_key',
+                json: '1'
+            });
+            let ostatniBlad = null;
+            for (const base of OFF_ENDPOINTS) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                try {
+                    const response = await fetch(`${base}?${params.toString()}`, {
+                        signal: controller.signal,
+                        headers: { Accept: 'application/json' }
                     });
-                } else { statusWyszukiwania.textContent = 'Brak wyników.'; }
-            } catch (error) { statusWyszukiwania.textContent = 'Błąd połączenia.'; }
+                    clearTimeout(timeoutId);
+                    if (!response.ok) {
+                        ostatniBlad = new Error('HTTP ' + response.status);
+                        if (response.status >= 500) continue;
+                        continue;
+                    }
+                    const ct = response.headers.get('content-type') || '';
+                    if (!ct.includes('application/json')) {
+                        ostatniBlad = new Error('not-json');
+                        continue;
+                    }
+                    try {
+                        return await response.json();
+                    } catch (parseErr) {
+                        ostatniBlad = parseErr;
+                    }
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    ostatniBlad = err;
+                }
+            }
+            throw ostatniBlad || new Error('fetch-failed');
+        }
+
+        async function pobierzWynikiWyszukiwaniaOFF(wyrazenie) {
+            // Pierwsza próba: dokładna fraza
+            const data = await probujEndpoint(wyrazenie);
+            const liczba = Array.isArray(data.products) ? data.products.length : 0;
+            // Fallback: dla krótkich/niedokończonych fraz (jak "stracciat") OFF akceptuje wildcard
+            if (liczba === 0 && !wyrazenie.endsWith('*') && wyrazenie.length <= 8) {
+                try {
+                    const dataWild = await probujEndpoint(wyrazenie + '*');
+                    if (Array.isArray(dataWild.products) && dataWild.products.length > 0) {
+                        return dataWild;
+                    }
+                } catch (_) { /* zwróć oryginalny wynik */ }
+            }
+            return data;
+        }
+
+        // Wyszukiwanie po NAZWIE (endpoint v2 OFF — CORS OK)
+        let aktywneWyszukiwanieToken = 0;
+        let debounceWyszukiwaniaTimer = null;
+
+        async function wykonajWyszukiwanie(wyrazenie) {
+            const token = ++aktywneWyszukiwanieToken;
+            statusWyszukiwania.textContent = 'Ładowanie…';
+            wynikiWyszukiwania.innerHTML = '';
+
+            try {
+                const data = await pobierzWynikiWyszukiwaniaOFF(wyrazenie);
+                if (token !== aktywneWyszukiwanieToken) return; // nowe zapytanie w toku — porzuć stare
+                const produkty = data.products || [];
+                let dodano = 0;
+                const maxWynikow = 8;
+                for (let i = 0; i < produkty.length && dodano < maxWynikow; i++) {
+                    const produkt = produkty[i];
+                    const p = produkt.nutriments || {};
+                    const { kcal: kalorieNa100g, b: bialkoNa100g, w: weglowodanyNa100g, t: tluszczeNa100g } = nutrimentsNa100g(p);
+                    if (kalorieNa100g <= 0) continue;
+                    const nazwa = produkt.product_name_pl || produkt.product_name || produkt.product_name_en || 'Brak nazwy';
+                    const producent = (produkt.brands && String(produkt.brands).trim()) || '';
+                    const pelnaNazwa = producent ? `${nazwa} (${producent})` : nazwa;
+                    const li = document.createElement('li');
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'przycisk-maly przycisk-dodaj-z-wyszukiwania';
+                    btn.dataset.nazwa = pelnaNazwa;
+                    btn.dataset.kalorie100g = String(kalorieNa100g);
+                    btn.dataset.bialko100g = String(bialkoNa100g);
+                    btn.dataset.weglowodany100g = String(weglowodanyNa100g);
+                    btn.dataset.tluszcze100g = String(tluszczeNa100g);
+                    btn.innerHTML = '<i class="bi bi-plus" style="font-size: 1.2em; vertical-align: middle;"></i>';
+                    const info = document.createElement('div');
+                    info.className = 'info';
+                    const tytul = producent ? `${nazwa} (${producent})` : nazwa;
+                    info.innerHTML = `
+                        <strong></strong> (${kalorieNa100g.toFixed(0)} kcal / 100g)
+                        <div class="info-makro">
+                            <span class="b">B:</span> ${bialkoNa100g}g | <span class="w">W:</span> ${weglowodanyNa100g}g | <span class="t">T:</span> ${tluszczeNa100g}g
+                        </div>`;
+                    info.querySelector('strong').textContent = tytul;
+                    li.appendChild(info);
+                    li.appendChild(btn);
+                    wynikiWyszukiwania.appendChild(li);
+                    dodano++;
+                }
+                if (dodano > 0) {
+                    statusWyszukiwania.textContent = `Wyniki dla: „${wyrazenie}”`;
+                } else if (produkty.length === 0) {
+                    statusWyszukiwania.textContent = `Brak wyników dla „${wyrazenie}”.`;
+                } else {
+                    statusWyszukiwania.textContent = 'Brak produktów z uzupełnionymi kaloriami. Spróbuj innej frazy.';
+                }
+            } catch (error) {
+                if (token !== aktywneWyszukiwanieToken) return;
+                if (error && error.name === 'AbortError') {
+                    statusWyszukiwania.textContent = 'Przekroczono czas oczekiwania. Spróbuj ponownie.';
+                } else {
+                    statusWyszukiwania.textContent = 'Błąd połączenia z bazą. Sprawdź internet i spróbuj ponownie.';
+                }
+            }
+        }
+
+        formularzWyszukiwania.addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearTimeout(debounceWyszukiwaniaTimer);
+            const wyrazenie = (inputWyszukiwania.value || '').trim();
+            if (wyrazenie.length < 2) {
+                statusWyszukiwania.textContent = 'Wpisz co najmniej 2 znaki.';
+                return;
+            }
+            wykonajWyszukiwanie(wyrazenie);
+        });
+
+        // Live-search z debounce — od 2 znaków, po 400 ms bezczynności
+        inputWyszukiwania.addEventListener('input', function() {
+            clearTimeout(debounceWyszukiwaniaTimer);
+            const wyrazenie = (inputWyszukiwania.value || '').trim();
+            if (wyrazenie.length < 2) {
+                aktywneWyszukiwanieToken++; // anuluj bieżące
+                statusWyszukiwania.textContent = '';
+                wynikiWyszukiwania.innerHTML = '';
+                return;
+            }
+            debounceWyszukiwaniaTimer = setTimeout(() => wykonajWyszukiwanie(wyrazenie), 400);
         });
         
         function dodajZListy(nazwa, kalorieNa100g, bialkoNa100g, weglowodanyNa100g, tluszczeNa100g) {
@@ -893,7 +1733,407 @@
             }
         });
         przyciskZamknijSkaner.addEventListener('click', stopSkanera);
-        
+
+        // === AI: ROZPOZNAWANIE JEDZENIA ZE ZDJĘCIA (Gemini 2.5 Flash) ===
+        const kluczStorageGeminiKey = 'dziennikGeminiKey';
+        const GEMINI_MODEL = 'gemini-2.5-flash';
+        const GEMINI_URL = (k) =>
+            `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(k)}`;
+
+        const PROMPT_AI = 'Przeanalizuj zdjęcie jedzenia. Zidentyfikuj produkt lub danie i oszacuj wagę w gramach oraz makroskładniki dla CAŁEJ widocznej porcji (nie na 100 g). Jeśli na zdjęciu jest więcej niż jedno danie, podsumuj je jako jedną pozycję z nazwą opisującą całość. Zwróć wyłącznie JSON zgodny ze schematem. Wartości liczbowe zaokrąglij do 1 miejsca po przecinku. Pole pewnosc to liczba 0-1 oznaczająca Twoją pewność rozpoznania. Odpowiadaj po polsku.';
+
+        const GEMINI_SCHEMA = {
+            type: 'OBJECT',
+            properties: {
+                nazwa:         { type: 'STRING' },
+                waga_g:        { type: 'NUMBER' },
+                kalorie:       { type: 'NUMBER' },
+                bialko_g:      { type: 'NUMBER' },
+                weglowodany_g: { type: 'NUMBER' },
+                tluszcze_g:    { type: 'NUMBER' },
+                pewnosc:       { type: 'NUMBER' }
+            },
+            required: ['nazwa', 'waga_g', 'kalorie', 'bialko_g', 'weglowodany_g', 'tluszcze_g']
+        };
+
+        const modalGeminiKey = document.getElementById('modal-gemini-key');
+        const formGeminiKey = document.getElementById('formularz-gemini-key');
+        const inputGeminiKey = document.getElementById('input-gemini-key');
+        const przyciskAnulujGeminiKey = document.getElementById('przycisk-anuluj-gemini-key');
+        const formGeminiKeyUstawienia = document.getElementById('formularz-gemini-key-ustawienia');
+        const inputGeminiKeyUstawienia = document.getElementById('input-gemini-key-ustawienia');
+        const statusKluczaAI = document.getElementById('status-klucza-ai');
+
+        const fotoInput = document.getElementById('foto-input');
+        const modalAIWynik = document.getElementById('modal-ai-wynik');
+        const naglowekAIWynik = document.getElementById('naglowek-ai-wynik');
+        const aiWynikStatus = document.getElementById('ai-wynik-status');
+        const aiWynikThumb = document.getElementById('ai-wynik-thumb');
+        const formAIWynik = document.getElementById('formularz-ai-wynik');
+        const aiNazwa = document.getElementById('ai-nazwa');
+        const aiWaga = document.getElementById('ai-waga');
+        const aiKalorie = document.getElementById('ai-kalorie');
+        const aiBialko = document.getElementById('ai-bialko');
+        const aiWeglowodany = document.getElementById('ai-weglowodany');
+        const aiTluszcze = document.getElementById('ai-tluszcze');
+        const aiPewnosc = document.getElementById('ai-pewnosc');
+        const przyciskAnulujAIWynik = document.getElementById('przycisk-anuluj-ai-wynik');
+
+        function pobierzGeminiKey() {
+            return (localStorage.getItem(kluczStorageGeminiKey) || '').trim();
+        }
+        function zapiszGeminiKey(k) {
+            localStorage.setItem(kluczStorageGeminiKey, (k || '').trim());
+            odswiezStatusKluczaAI();
+        }
+        function odswiezStatusKluczaAI() {
+            const k = pobierzGeminiKey();
+            if (!statusKluczaAI) return;
+            if (k) {
+                const masked = k.length > 8 ? `${k.slice(0, 4)}…${k.slice(-4)}` : '••••';
+                statusKluczaAI.textContent = `Klucz zapisany (${masked}).`;
+                statusKluczaAI.style.color = 'var(--kolor-glowny)';
+            } else {
+                statusKluczaAI.textContent = 'Brak zapisanego klucza.';
+                statusKluczaAI.style.color = 'var(--kolor-tekst-drugi)';
+            }
+        }
+
+        function pokazModalGeminiKey() {
+            inputGeminiKey.value = pobierzGeminiKey();
+            modalGeminiKey.style.display = 'flex';
+            setTimeout(() => inputGeminiKey.focus(), 50);
+        }
+        function ukryjModalGeminiKey() {
+            modalGeminiKey.style.display = 'none';
+        }
+
+        formGeminiKey.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const k = inputGeminiKey.value.trim();
+            if (!k) { alert('Wklej klucz.'); return; }
+            zapiszGeminiKey(k);
+            if (inputGeminiKeyUstawienia) inputGeminiKeyUstawienia.value = '';
+            ukryjModalGeminiKey();
+            if (aktywnyPosilek) startKameryFoto();
+        });
+        przyciskAnulujGeminiKey.addEventListener('click', ukryjModalGeminiKey);
+
+        formGeminiKeyUstawienia.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const k = inputGeminiKeyUstawienia.value.trim();
+            if (!k) { alert('Wklej klucz.'); return; }
+            zapiszGeminiKey(k);
+            inputGeminiKeyUstawienia.value = '';
+            alert('Klucz zapisany.');
+        });
+        odswiezStatusKluczaAI();
+
+        function resizeObrazek(file, maxPx = 1024) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Nie udało się odczytać pliku.'));
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('Nie udało się wczytać obrazka.'));
+                    img.onload = () => {
+                        let { width, height } = img;
+                        const skala = Math.min(1, maxPx / Math.max(width, height));
+                        const w = Math.round(width * skala);
+                        const h = Math.round(height * skala);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        const base64 = dataUrl.split(',')[1] || '';
+                        resolve({ dataUrl, base64 });
+                    };
+                    img.src = reader.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function zapytajGeminiOZdjecie(base64) {
+            const klucz = pobierzGeminiKey();
+            if (!klucz) throw new Error('NO_KEY');
+
+            const body = {
+                contents: [{
+                    parts: [
+                        { text: PROMPT_AI },
+                        { inline_data: { mime_type: 'image/jpeg', data: base64 } }
+                    ]
+                }],
+                generationConfig: {
+                    responseMimeType: 'application/json',
+                    responseSchema: GEMINI_SCHEMA,
+                    temperature: 0.2
+                }
+            };
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
+            let response;
+            try {
+                response = await fetch(GEMINI_URL(klucz), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    signal: controller.signal
+                });
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (err && err.name === 'AbortError') throw new Error('TIMEOUT');
+                throw new Error('NETWORK');
+            }
+            clearTimeout(timeoutId);
+
+            if (response.status === 400 || response.status === 401 || response.status === 403) {
+                throw new Error('BAD_KEY');
+            }
+            if (!response.ok) {
+                throw new Error('HTTP_' + response.status);
+            }
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (_) {
+                throw new Error('BAD_JSON');
+            }
+
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (!text) throw new Error('EMPTY_RESPONSE');
+
+            let parsed;
+            try {
+                parsed = JSON.parse(text);
+            } catch (_) {
+                const match = text.match(/\{[\s\S]*\}/);
+                if (!match) throw new Error('BAD_JSON');
+                try { parsed = JSON.parse(match[0]); }
+                catch (_) { throw new Error('BAD_JSON'); }
+            }
+            return parsed;
+        }
+
+        function pokazModalAIWynik(wynik, thumbDataUrl) {
+            const nazwaPosilku = aktywnyPosilek
+                ? document.getElementById(`naglowek-${aktywnyPosilek}`).textContent
+                : 'posiłku';
+            naglowekAIWynik.textContent = `Dodaj do: ${nazwaPosilku}`;
+
+            aiWynikThumb.src = thumbDataUrl || '';
+            aiWynikThumb.style.display = thumbDataUrl ? 'block' : 'none';
+
+            aiNazwa.value = wynik.nazwa || '';
+            aiWaga.value = wynik.waga_g != null ? Number(wynik.waga_g).toFixed(0) : '';
+            aiKalorie.value = wynik.kalorie != null ? Number(wynik.kalorie).toFixed(0) : '';
+            aiBialko.value = wynik.bialko_g != null ? Number(wynik.bialko_g).toFixed(1) : '';
+            aiWeglowodany.value = wynik.weglowodany_g != null ? Number(wynik.weglowodany_g).toFixed(1) : '';
+            aiTluszcze.value = wynik.tluszcze_g != null ? Number(wynik.tluszcze_g).toFixed(1) : '';
+            aiPewnosc.value = wynik.pewnosc != null ? Math.round(Number(wynik.pewnosc) * 100) : '';
+
+            aiWynikStatus.textContent = '';
+            modalAIWynik.style.display = 'flex';
+        }
+
+        function ukryjModalAIWynik() {
+            modalAIWynik.style.display = 'none';
+            aiWynikThumb.src = '';
+        }
+        przyciskAnulujAIWynik.addEventListener('click', ukryjModalAIWynik);
+
+        function pokazSpinnerAI(thumbDataUrl) {
+            naglowekAIWynik.textContent = 'Analizuję zdjęcie…';
+            aiWynikThumb.src = thumbDataUrl || '';
+            aiWynikThumb.style.display = thumbDataUrl ? 'block' : 'none';
+            aiNazwa.value = '';
+            aiWaga.value = '';
+            aiKalorie.value = '';
+            aiBialko.value = '';
+            aiWeglowodany.value = '';
+            aiTluszcze.value = '';
+            aiPewnosc.value = '';
+            aiWynikStatus.textContent = 'Wysyłam zdjęcie do Gemini…';
+            modalAIWynik.style.display = 'flex';
+        }
+
+        function komunikatBleduAI(err) {
+            const msg = err && err.message ? err.message : '';
+            switch (msg) {
+                case 'NO_KEY':         return 'Brak klucza Gemini. Dodaj go w Ustawieniach.';
+                case 'BAD_KEY':        return 'Nieprawidłowy klucz Gemini. Sprawdź klucz w Ustawieniach.';
+                case 'TIMEOUT':        return 'Przekroczono czas oczekiwania. Spróbuj ponownie.';
+                case 'NETWORK':        return 'Błąd połączenia. Sprawdź internet i spróbuj ponownie.';
+                case 'BAD_JSON':       return 'AI zwróciło niepoprawną odpowiedź. Spróbuj ponownie lub wypełnij ręcznie.';
+                case 'EMPTY_RESPONSE': return 'AI nie rozpoznało dania. Spróbuj innego ujęcia.';
+                default:               return 'Błąd analizy AI. Spróbuj ponownie lub wypełnij ręcznie.';
+            }
+        }
+
+        async function obsluzPlikFoto(file) {
+            if (!file) return;
+            if (!aktywnyPosilek) { alert('Najpierw wybierz posiłek.'); return; }
+
+            if (!pobierzGeminiKey()) {
+                pokazModalGeminiKey();
+                return;
+            }
+
+            let thumbDataUrl = '';
+            let base64 = '';
+            try {
+                const resized = await resizeObrazek(file, 1024);
+                thumbDataUrl = resized.dataUrl;
+                base64 = resized.base64;
+            } catch (err) {
+                alert('Nie udało się przetworzyć zdjęcia.');
+                return;
+            }
+
+            pokazSpinnerAI(thumbDataUrl);
+
+            try {
+                const wynik = await zapytajGeminiOZdjecie(base64);
+                pokazModalAIWynik(wynik, thumbDataUrl);
+            } catch (err) {
+                if (err && err.message === 'BAD_KEY') {
+                    ukryjModalAIWynik();
+                    alert(komunikatBleduAI(err));
+                    pokazModalGeminiKey();
+                    return;
+                }
+                aiWynikStatus.textContent = komunikatBleduAI(err);
+                aiWynikStatus.style.color = '#ff3b30';
+                const nazwaPosilku = aktywnyPosilek
+                    ? document.getElementById(`naglowek-${aktywnyPosilek}`).textContent
+                    : 'posiłku';
+                naglowekAIWynik.textContent = `Dodaj ręcznie do: ${nazwaPosilku}`;
+            }
+        }
+
+        fotoInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            fotoInput.value = '';
+            obsluzPlikFoto(file);
+        });
+
+        // === Live podgląd kamery (dla AI rozpoznawania) ===
+        const modalKamera = document.getElementById('modal-kamera');
+        const kameraVideo = document.getElementById('kamera-video');
+        const przyciskZrobZdjecie = document.getElementById('przycisk-zrob-zdjecie');
+        const przyciskAnulujKamera = document.getElementById('przycisk-anuluj-kamera');
+        const przyciskPrzelaczKamera = document.getElementById('przycisk-przelacz-kamera');
+        let kameraStream = null;
+        let kameraFacing = 'environment';
+
+        function wspieraKamere() {
+            return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+        }
+
+        async function startKameryFoto() {
+            if (!wspieraKamere()) {
+                fotoInput.click();
+                return;
+            }
+            try {
+                kameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: kameraFacing } },
+                    audio: false
+                });
+                kameraVideo.srcObject = kameraStream;
+                modalKamera.style.display = 'flex';
+                try { await kameraVideo.play(); } catch (_) {}
+            } catch (err) {
+                console.warn('getUserMedia niedostępne:', err);
+                fotoInput.click();
+            }
+        }
+
+        function stopKameryFoto() {
+            if (kameraStream) {
+                kameraStream.getTracks().forEach(t => t.stop());
+                kameraStream = null;
+            }
+            kameraVideo.srcObject = null;
+            modalKamera.style.display = 'none';
+        }
+
+        async function przelaczKamere() {
+            kameraFacing = (kameraFacing === 'environment') ? 'user' : 'environment';
+            if (kameraStream) {
+                kameraStream.getTracks().forEach(t => t.stop());
+                kameraStream = null;
+            }
+            try {
+                kameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: kameraFacing } },
+                    audio: false
+                });
+                kameraVideo.srcObject = kameraStream;
+                try { await kameraVideo.play(); } catch (_) {}
+            } catch (err) {
+                alert('Nie udało się przełączyć kamery.');
+                stopKameryFoto();
+            }
+        }
+
+        function zrobZdjecieZKamery() {
+            if (!kameraStream || !kameraVideo.videoWidth) {
+                alert('Kamera jeszcze się ładuje.');
+                return;
+            }
+            const vw = kameraVideo.videoWidth;
+            const vh = kameraVideo.videoHeight;
+            const canvas = document.createElement('canvas');
+            canvas.width = vw;
+            canvas.height = vh;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(kameraVideo, 0, 0, vw, vh);
+            canvas.toBlob((blob) => {
+                if (!blob) { alert('Nie udało się zrobić zdjęcia.'); return; }
+                const file = new File([blob], 'foto-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+                stopKameryFoto();
+                obsluzPlikFoto(file);
+            }, 'image/jpeg', 0.92);
+        }
+
+        przyciskZrobZdjecie.addEventListener('click', zrobZdjecieZKamery);
+        przyciskAnulujKamera.addEventListener('click', stopKameryFoto);
+        przyciskPrzelaczKamera.addEventListener('click', przelaczKamere);
+
+        formAIWynik.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nazwa = (aiNazwa.value || '').trim() || 'Danie AI';
+            const waga = parseFloat(aiWaga.value);
+            const kalorie = parseFloat(aiKalorie.value);
+            const bialko = parseFloat(aiBialko.value) || 0;
+            const weglowodany = parseFloat(aiWeglowodany.value) || 0;
+            const tluszcze = parseFloat(aiTluszcze.value) || 0;
+            if (isNaN(kalorie) || kalorie <= 0) { alert('Podaj kalorie.'); return; }
+            const nazwaZWaga = !isNaN(waga) && waga > 0
+                ? `${nazwa} (foto, ${Math.round(waga)}g)`
+                : `${nazwa} (foto)`;
+            if (dodajNowyProdukt(nazwaZWaga, kalorie, bialko, weglowodany, tluszcze)) {
+                ukryjModalAIWynik();
+            }
+        });
+
+        document.body.addEventListener('click', function(e) {
+            if (e.target.closest('.przycisk-foto-posilek')) {
+                aktywnyPosilek = e.target.closest('.przycisk-foto-posilek').dataset.posilek;
+                if (!pobierzGeminiKey()) {
+                    pokazModalGeminiKey();
+                    return;
+                }
+                startKameryFoto();
+            }
+        });
+
         // === Logika USUWANIA Produktu (ORYGINALNA) ===
         document.body.addEventListener('click', function(e) {
             const przyciskUsun = e.target.closest('.przycisk-usun');
