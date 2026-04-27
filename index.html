@@ -73,7 +73,11 @@
         }
 
         /* Ustawienia Globalne / Native Feel */
-        html { overscroll-behavior-y: contain; }
+        html {
+            overscroll-behavior-y: contain;
+            background-color: var(--kolor-tlo);
+            min-height: 100%;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
             background-color: var(--kolor-tlo);
@@ -128,12 +132,12 @@
         .ka-header-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
         .ka-trophy-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
             border: 1px solid var(--kolor-border);
             background: var(--kolor-akcent-zolty);
             display: flex;
@@ -143,11 +147,11 @@
             padding: 0;
             flex-shrink: 0;
         }
-        .ka-trophy-btn span { font-size: 1.35rem; line-height: 1; }
+        .ka-trophy-btn span { font-size: 1.4rem; line-height: 1; }
         #theme-toggle {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
             border: 1px solid var(--kolor-border);
             background: var(--kolor-tlo-karty);
             font-size: 1.15em;
@@ -341,15 +345,18 @@
             align-items: center;
             gap: 6px;
         }
-        .ka-btn-add {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
+        .ka-meal-fab-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+        .ka-meal-fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
             border: none;
             background: var(--kolor-glowny);
             color: #fff;
             font-size: 1.6rem;
-            font-weight: 300;
             line-height: 1;
             cursor: pointer;
             display: flex;
@@ -357,21 +364,71 @@
             justify-content: center;
             padding: 0;
             flex-shrink: 0;
-            transition: background 0.2s;
+            box-shadow: 0 4px 12px color-mix(in srgb, var(--kolor-glowny) 35%, transparent);
+            transition: background 0.2s ease, transform 0.2s ease;
         }
-        .ka-btn-add:active { background: var(--kolor-glowny-ciemny); }
-        .ka-btn-scan {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+        .ka-meal-fab i {
+            transition: transform 0.2s ease;
+        }
+        .ka-meal-fab:active { background: var(--kolor-glowny-ciemny); }
+        .ka-meal-fab[aria-expanded="true"] {
+            background: var(--kolor-glowny-ciemny);
+        }
+        .ka-meal-fab[aria-expanded="true"] i {
+            transform: rotate(45deg);
+        }
+        .ka-meal-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 240px;
+            background: var(--kolor-tlo-karty);
             border: 1px solid var(--kolor-border);
-            background: var(--kolor-tlo);
-            color: var(--kolor-tekst-drugi);
-            cursor: pointer;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px var(--kolor-shadow);
+            padding: 6px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            animation: kaMealMenuIn 0.15s ease-out;
+        }
+        .ka-meal-menu[hidden] { display: none; }
+        @keyframes kaMealMenuIn {
+            from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .ka-meal-menu-item {
+            width: 100%;
+            min-height: 52px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 0;
+            gap: 12px;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: var(--kolor-tekst-glowny);
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-align: left;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .ka-meal-menu-item:hover,
+        .ka-meal-menu-item:focus-visible {
+            background: var(--kolor-tlo);
+            outline: none;
+        }
+        .ka-meal-menu-item:active {
+            background: color-mix(in srgb, var(--kolor-glowny) 12%, transparent);
+        }
+        .ka-meal-menu-item i {
+            font-size: 1.2rem;
+            color: var(--kolor-glowny);
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
         }
         .ka-meal-hint {
             text-align: center;
@@ -446,13 +503,12 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            font-size: 1.0em; /* Rozmiar ikony */
+            width: 40px;
+            height: 40px;
+            font-size: 1.1em;
             cursor: pointer;
             flex-shrink: 0;
-            
-            /* Używamy flexboxa do idealnego centrowania ikony */
+            margin-left: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -501,6 +557,12 @@
         .przycisk-usun,
         #przycisk-zamknij-skaner {
             width: auto;
+        }
+        .ka-meal-actions .ka-meal-fab {
+            width: 56px;
+        }
+        .ka-meal-menu .ka-meal-menu-item {
+            width: 100%;
         }
         .modal-content form button[type="submit"],
         .modal-content > button:not(.przycisk-usun) {
@@ -739,15 +801,21 @@
             justify-content: space-between;
             align-items: baseline;
             margin-bottom: 8px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .ka-macro-header h3 {
             margin: 0;
-            font-size: 2rem;
-            letter-spacing: -0.03em;
+            font-size: 1.35rem;
+            letter-spacing: -0.02em;
+            min-width: 0;
+            flex: 1 1 auto;
         }
         .ka-macro-header span {
             color: var(--kolor-tekst-drugi);
             font-size: 0.85rem;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .ka-mrow {
             margin: 14px 0;
@@ -778,11 +846,6 @@
         }
         .naglowek-posilku h3 {
             font-size: 1rem;
-        }
-        .ka-btn-add {
-            width: 42px;
-            height: 42px;
-            border-radius: 14px;
         }
         #tab-bar {
             max-width: var(--ka-max-width);
@@ -826,8 +889,133 @@
             background: var(--kolor-result-row-bg);
         }
         .przycisk-usun {
-            width: 28px;
-            height: 28px;
+            width: 40px;
+            height: 40px;
+            font-size: 1.1em;
+        }
+
+        /* === Onboarding === */
+        #modal-onboarding .modal-content { max-width: 460px; }
+        #modal-onboarding h3 { margin-bottom: 6px; font-size: 1.4rem; }
+        #modal-onboarding .onb-intro {
+            margin: 0 0 16px;
+            font-size: 0.95rem;
+            color: var(--kolor-tekst-drugi);
+        }
+        /* Welcome step - lista funkcji */
+        .onb-welcome-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        .onb-welcome-title {
+            margin: 0;
+            font-size: 1.7rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--kolor-tekst-glowny);
+        }
+        .onb-version-badge {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--kolor-goal-pill-text);
+            background: var(--kolor-goal-pill-bg);
+            border-radius: 999px;
+            padding: 4px 10px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .onb-welcome-sub {
+            margin: 0 0 16px;
+            color: var(--kolor-tekst-drugi);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        .onb-feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .onb-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: var(--kolor-tlo);
+            border: 1px solid var(--kolor-border);
+        }
+        .onb-feature p {
+            margin: 0;
+            font-size: 0.92rem;
+            color: var(--kolor-tekst-glowny);
+            line-height: 1.35;
+            flex: 1;
+        }
+        .onb-feature-icon {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            background: var(--kolor-glowny);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .onb-feature-icon.alt-1 { background: var(--kolor-akcent-pomarancz); }
+        .onb-feature-icon.alt-2 { background: var(--kolor-weglowodany); }
+        .onb-feature-icon.alt-3 { background: var(--kolor-bialko); }
+        #onb-zaczynamy i { margin-right: 6px; }
+        .onb-opcje {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 14px 0 6px;
+        }
+        .onb-opcja {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 2px solid var(--kolor-border);
+            background: var(--kolor-tlo-karty);
+            color: var(--kolor-tekst-glowny);
+            text-align: left;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: auto auto;
+            row-gap: 4px;
+            column-gap: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: border-color 0.2s, transform 0.1s;
+        }
+        .onb-opcja:active { transform: scale(0.98); }
+        .onb-opcja[data-cel="redukcja"]   { border-left: 6px solid #ff9500; }
+        .onb-opcja[data-cel="utrzymanie"] { border-left: 6px solid var(--kolor-glowny); }
+        .onb-opcja[data-cel="masa"]       { border-left: 6px solid var(--kolor-weglowodany); }
+        .onb-opcja .onb-tytul { font-size: 1.05rem; font-weight: 700; }
+        .onb-opcja .onb-kcal {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--kolor-glowny);
+            text-align: right;
+            white-space: nowrap;
+        }
+        .onb-opcja .onb-makro {
+            grid-column: 1 / span 2;
+            color: var(--kolor-tekst-drugi);
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+        #onb-tmr-info {
+            text-align: center;
+            font-size: 0.95rem;
+            color: var(--kolor-tekst-drugi);
+            margin: 0 0 6px;
         }
 
     </style>
@@ -913,9 +1101,14 @@
                         </div>
                     </div>
                     <div class="ka-meal-actions">
-                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="sniadanie" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
-                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="sniadanie" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
-                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="sniadanie" title="Dodaj" aria-label="Dodaj posiłek">+</button>
+                        <div class="ka-meal-fab-wrap">
+                            <button type="button" class="ka-meal-fab" aria-haspopup="true" aria-expanded="false" aria-label="Dodaj do śniadania" data-posilek="sniadanie"><i class="bi bi-plus-lg"></i></button>
+                            <div class="ka-meal-menu" role="menu" hidden>
+                                <button type="button" class="ka-meal-menu-item przycisk-szukaj-posilek" data-posilek="sniadanie" role="menuitem"><i class="bi bi-search"></i><span>Wyszukaj produkt</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-foto-posilek" data-posilek="sniadanie" role="menuitem"><i class="bi bi-camera"></i><span>Zrób zdjęcie</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-skanuj-posilek" data-posilek="sniadanie" role="menuitem"><i class="bi bi-upc-scan"></i><span>Skanuj kod kreskowy</span></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-sniadanie"></ul>
@@ -932,9 +1125,14 @@
                         </div>
                     </div>
                     <div class="ka-meal-actions">
-                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="obiad" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
-                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="obiad" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
-                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="obiad" title="Dodaj" aria-label="Dodaj posiłek">+</button>
+                        <div class="ka-meal-fab-wrap">
+                            <button type="button" class="ka-meal-fab" aria-haspopup="true" aria-expanded="false" aria-label="Dodaj do obiadu" data-posilek="obiad"><i class="bi bi-plus-lg"></i></button>
+                            <div class="ka-meal-menu" role="menu" hidden>
+                                <button type="button" class="ka-meal-menu-item przycisk-szukaj-posilek" data-posilek="obiad" role="menuitem"><i class="bi bi-search"></i><span>Wyszukaj produkt</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-foto-posilek" data-posilek="obiad" role="menuitem"><i class="bi bi-camera"></i><span>Zrób zdjęcie</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-skanuj-posilek" data-posilek="obiad" role="menuitem"><i class="bi bi-upc-scan"></i><span>Skanuj kod kreskowy</span></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-obiad"></ul>
@@ -951,9 +1149,14 @@
                         </div>
                     </div>
                     <div class="ka-meal-actions">
-                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="kolacja" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
-                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="kolacja" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
-                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="kolacja" title="Dodaj" aria-label="Dodaj posiłek">+</button>
+                        <div class="ka-meal-fab-wrap">
+                            <button type="button" class="ka-meal-fab" aria-haspopup="true" aria-expanded="false" aria-label="Dodaj do kolacji" data-posilek="kolacja"><i class="bi bi-plus-lg"></i></button>
+                            <div class="ka-meal-menu" role="menu" hidden>
+                                <button type="button" class="ka-meal-menu-item przycisk-szukaj-posilek" data-posilek="kolacja" role="menuitem"><i class="bi bi-search"></i><span>Wyszukaj produkt</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-foto-posilek" data-posilek="kolacja" role="menuitem"><i class="bi bi-camera"></i><span>Zrób zdjęcie</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-skanuj-posilek" data-posilek="kolacja" role="menuitem"><i class="bi bi-upc-scan"></i><span>Skanuj kod kreskowy</span></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-kolacja"></ul>
@@ -970,9 +1173,14 @@
                         </div>
                     </div>
                     <div class="ka-meal-actions">
-                        <button type="button" class="ka-btn-scan przycisk-foto-posilek" data-posilek="przekaski" title="Zdjęcie jedzenia" aria-label="Zdjęcie jedzenia"><i class="bi bi-camera"></i></button>
-                        <button type="button" class="ka-btn-scan przycisk-skanuj-posilek" data-posilek="przekaski" title="Skanuj kod" aria-label="Skanuj kod"><i class="bi bi-upc-scan"></i></button>
-                        <button type="button" class="ka-btn-add przycisk-szukaj-posilek" data-posilek="przekaski" title="Dodaj" aria-label="Dodaj posiłek">+</button>
+                        <div class="ka-meal-fab-wrap">
+                            <button type="button" class="ka-meal-fab" aria-haspopup="true" aria-expanded="false" aria-label="Dodaj do przekąsek" data-posilek="przekaski"><i class="bi bi-plus-lg"></i></button>
+                            <div class="ka-meal-menu" role="menu" hidden>
+                                <button type="button" class="ka-meal-menu-item przycisk-szukaj-posilek" data-posilek="przekaski" role="menuitem"><i class="bi bi-search"></i><span>Wyszukaj produkt</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-foto-posilek" data-posilek="przekaski" role="menuitem"><i class="bi bi-camera"></i><span>Zrób zdjęcie</span></button>
+                                <button type="button" class="ka-meal-menu-item przycisk-skanuj-posilek" data-posilek="przekaski" role="menuitem"><i class="bi bi-upc-scan"></i><span>Skanuj kod kreskowy</span></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <ul class="lista-produktow" id="lista-przekaski"></ul>
@@ -1007,6 +1215,16 @@
                 </form>
                 <div id="wynik-kalkulatora" style="display: none; margin-top: 20px; padding: 15px; background: var(--kolor-tlo); border-radius: 8px;">
                 </div>
+            </div>
+
+            <div class="container">
+                <h2>Twój cel</h2>
+                <p id="info-aktualny-cel" style="font-size: 0.9em; color: var(--kolor-tekst-drugi); margin-top: 0; text-align: center;">
+                    Brak ustawionego celu.
+                </p>
+                <button type="button" id="przycisk-zmien-cel" style="background-color: var(--kolor-weglowodany);">
+                    <i class="bi bi-arrow-repeat" style="margin-right:6px;"></i>Zmień cel
+                </button>
             </div>
 
             <div class="container">
@@ -1141,6 +1359,94 @@
         </div>
     </div>
 
+    <div id="modal-onboarding" class="modal-overlay">
+        <div class="modal-content">
+            <div id="onboarding-step-0">
+                <div class="onb-welcome-head">
+                    <h2 class="onb-welcome-title">Witaj w MakroAI!</h2>
+                    <span class="onb-version-badge">v1.0</span>
+                </div>
+                <p class="onb-welcome-sub">Twój dziennik kalorii i makroskładników. Oto co możesz robić w aplikacji:</p>
+                <div class="onb-feature-list">
+                    <div class="onb-feature">
+                        <div class="onb-feature-icon"><i class="bi bi-list-ul"></i></div>
+                        <p>Prowadź dziennik posiłków, kalorii i makroskładników.</p>
+                    </div>
+                    <div class="onb-feature">
+                        <div class="onb-feature-icon alt-1"><i class="bi bi-upc-scan"></i></div>
+                        <p>Skanuj kody kreskowe produktów i dodawaj jednym tapnięciem.</p>
+                    </div>
+                    <div class="onb-feature">
+                        <div class="onb-feature-icon alt-2"><i class="bi bi-camera"></i></div>
+                        <p>AI rozpoznaje danie ze zdjęcia i szacuje makra.</p>
+                    </div>
+                    <div class="onb-feature">
+                        <div class="onb-feature-icon"><i class="bi bi-search"></i></div>
+                        <p>Tysiące produktów z bazy OpenFoodFacts.</p>
+                    </div>
+                    <div class="onb-feature">
+                        <div class="onb-feature-icon alt-3"><i class="bi bi-clipboard-data"></i></div>
+                        <p>Kalkulator zapotrzebowania z 3 celami: redukcja, utrzymanie, masa.</p>
+                    </div>
+                    <div class="onb-feature">
+                        <div class="onb-feature-icon alt-1"><i class="bi bi-moon-stars-fill"></i></div>
+                        <p>Jasny i ciemny motyw — wybierz, co Ci pasuje.</p>
+                    </div>
+                </div>
+                <button type="button" id="onb-zaczynamy"><i class="bi bi-check-lg"></i>Zaczynamy</button>
+            </div>
+            <div id="onboarding-step-1" style="display:none;">
+                <h3>Witaj w MakroAI!</h3>
+                <p class="onb-intro">Aby ustalić Twoje dzienne zapotrzebowanie, podaj kilka informacji.</p>
+                <form id="formularz-onboarding">
+                    <div class="form-grupa">
+                        <label>Płeć:</label>
+                        <div style="display:flex; gap:20px;">
+                            <label><input type="radio" name="plec-onb" value="m" checked> Mężczyzna</label>
+                            <label><input type="radio" name="plec-onb" value="k"> Kobieta</label>
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <input type="number" id="onb-wiek" placeholder="Wiek (lat)" min="10" max="120" required>
+                        <input type="number" id="onb-wzrost" placeholder="Wzrost (cm)" min="100" max="250" required>
+                        <input type="number" id="onb-waga" step="0.1" placeholder="Waga (kg)" min="30" max="300" required>
+                        <select id="onb-treningi" required>
+                            <option value="" disabled selected>Treningi w tygodniu</option>
+                            <option value="1.2">0 (siedzący tryb)</option>
+                            <option value="1.375">1–2 treningi</option>
+                            <option value="1.55">3–4 treningi</option>
+                            <option value="1.725">5–6 treningów</option>
+                            <option value="1.9">7+ (codzienne)</option>
+                        </select>
+                    </div>
+                    <button type="submit" style="margin-top: 14px;">Oblicz zapotrzebowanie</button>
+                </form>
+            </div>
+            <div id="onboarding-step-2" style="display:none;">
+                <h3>Wybierz swój cel</h3>
+                <p id="onb-tmr-info">Twoje TMR: <strong id="onb-tmr">–</strong> kcal/dzień</p>
+                <div class="onb-opcje">
+                    <button type="button" class="onb-opcja" data-cel="redukcja">
+                        <span class="onb-tytul">Redukcja</span>
+                        <span class="onb-kcal" id="onb-r-kcal">–</span>
+                        <span class="onb-makro" id="onb-r-makro"></span>
+                    </button>
+                    <button type="button" class="onb-opcja" data-cel="utrzymanie">
+                        <span class="onb-tytul">Utrzymanie</span>
+                        <span class="onb-kcal" id="onb-u-kcal">–</span>
+                        <span class="onb-makro" id="onb-u-makro"></span>
+                    </button>
+                    <button type="button" class="onb-opcja" data-cel="masa">
+                        <span class="onb-tytul">Masa</span>
+                        <span class="onb-kcal" id="onb-m-kcal">–</span>
+                        <span class="onb-makro" id="onb-m-makro"></span>
+                    </button>
+                </div>
+                <button type="button" id="onb-wstecz" style="background-color:#8e8e93; margin-top:10px;">Wstecz</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -1154,6 +1460,7 @@
         const kluczStorageProdukty = 'dziennikProdukty_v6';
         const kluczStorageCel = 'dziennikCel_v6';
         const kluczStorageTheme = 'dziennikTheme';
+        const kluczStorageDaneOsobowe = 'dziennikDaneOsobowe_v1';
 
         // Elementy DOM
         const modalDodaj = document.getElementById('modal-dodaj');
@@ -1355,7 +1662,60 @@
             }
         }
 
-        // === Logika KALKULATORA TMR i CELÓW (ORYGINALNA) ===
+        // === Logika KALKULATORA TMR i CELÓW ===
+        // Wspólna funkcja: oblicza Mifflin-St Jeor i zwraca 3 cele (redukcja/utrzymanie/masa)
+        function obliczCele(plec, wiek, wzrost, waga, aktywnosc) {
+            const bmr = (plec === 'm')
+                ? (10 * waga) + (6.25 * wzrost) - (5 * wiek) + 5
+                : (10 * waga) + (6.25 * wzrost) - (5 * wiek) - 161;
+            const tmr = bmr * aktywnosc;
+            const buduj = (kcal) => ({
+                kcal,
+                bialko: (kcal * 0.20) / 4,
+                weglowodany: (kcal * 0.50) / 4,
+                tluszcze: (kcal * 0.30) / 9
+            });
+            return {
+                tmr,
+                redukcja: buduj(tmr - 500),
+                utrzymanie: buduj(tmr),
+                masa: buduj(tmr + 500)
+            };
+        }
+
+        function zastosujCelIPrzejdz(opcja) {
+            zapiszCel({
+                kalorie: opcja.kcal,
+                bialko: opcja.bialko,
+                weglowodany: opcja.weglowodany,
+                tluszcze: opcja.tluszcze
+            });
+            odswiezInfoAktualnyCel();
+        }
+
+        function pobierzDaneOsobowe() {
+            try {
+                const raw = localStorage.getItem(kluczStorageDaneOsobowe);
+                return raw ? JSON.parse(raw) : null;
+            } catch (_) { return null; }
+        }
+        function zapiszDaneOsobowe(dane) {
+            try { localStorage.setItem(kluczStorageDaneOsobowe, JSON.stringify(dane)); } catch (_) {}
+        }
+
+        const infoAktualnyCel = document.getElementById('info-aktualny-cel');
+        function odswiezInfoAktualnyCel() {
+            if (!infoAktualnyCel) return;
+            const cel = pobierzCel();
+            if (cel && cel.kalorie > 0) {
+                infoAktualnyCel.innerHTML =
+                    `Aktualny cel: <strong>${cel.kalorie.toFixed(0)} kcal</strong> ` +
+                    `(B: ${cel.bialko.toFixed(0)}g · W: ${cel.weglowodany.toFixed(0)}g · T: ${cel.tluszcze.toFixed(0)}g)`;
+            } else {
+                infoAktualnyCel.textContent = 'Brak ustawionego celu.';
+            }
+        }
+
         kalkulatorForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const plec = document.querySelector('input[name="plec"]:checked').value;
@@ -1363,50 +1723,192 @@
             const wzrost = parseInt(document.getElementById('wzrost').value);
             const waga = parseFloat(document.getElementById('waga').value);
             const aktywnosc = parseFloat(document.getElementById('aktywnosc').value);
-            
+
             if (isNaN(wiek) || isNaN(wzrost) || isNaN(waga)) { alert("Wypełnij wszystkie pola kalkulatora."); return; }
-            let bmr = (plec === 'm') ? (10 * waga) + (6.25 * wzrost) - (5 * wiek) + 5 : (10 * waga) + (6.25 * wzrost) - (5 * wiek) - 161;
-            const tmr = bmr * aktywnosc;
-            const celBialko = (tmr * 0.20) / 4;
-            const celWeglowodany = (tmr * 0.50) / 4;
-            const celTluszcze = (tmr * 0.30) / 9;
-            const celRedukcja = tmr - 500;
-            const celRedBialko = (celRedukcja * 0.20) / 4;
-            const celRedWeglowodany = (celRedukcja * 0.50) / 4;
-            const celRedTluszcze = (celRedukcja * 0.30) / 9;
+            zapiszDaneOsobowe({ plec, wiek, wzrost, waga, aktywnosc });
+            const cele = obliczCele(plec, wiek, wzrost, waga, aktywnosc);
+
+            const karta = (klucz, tytul, kolorPasek) => {
+                const c = cele[klucz];
+                return `
+                    <button type="button" class="onb-opcja" data-cel-klucz="${klucz}" style="border-left:6px solid ${kolorPasek};">
+                        <span class="onb-tytul">${tytul}</span>
+                        <span class="onb-kcal">${c.kcal.toFixed(0)} kcal</span>
+                        <span class="onb-makro">B: ${c.bialko.toFixed(0)}g · W: ${c.weglowodany.toFixed(0)}g · T: ${c.tluszcze.toFixed(0)}g</span>
+                    </button>`;
+            };
 
             wynikKalkulatora.style.display = 'block';
             wynikKalkulatora.innerHTML = `
-                <h3 style="margin-bottom: 15px;">Twoje wyniki:</h3>
-                <div style="background: var(--kolor-tlo); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: left;">
-                    <strong>Utrzymanie wagi: ~${tmr.toFixed(0)} kcal</strong><br>
-                    <small>(<span class="b">B:</span> ${celBialko.toFixed(0)}g, <span class="w">W:</span> ${celWeglowodany.toFixed(0)}g, <span class="t">T:</span> ${celTluszcze.toFixed(0)}g)</small>
+                <p id="onb-tmr-info" style="margin: 0 0 10px;">TMR (utrzymanie): <strong>${cele.tmr.toFixed(0)}</strong> kcal/dzień</p>
+                <div class="onb-opcje" id="kalkulator-opcje">
+                    ${karta('redukcja',   'Redukcja',   '#ff9500')}
+                    ${karta('utrzymanie', 'Utrzymanie', 'var(--kolor-glowny)')}
+                    ${karta('masa',       'Masa',       'var(--kolor-weglowodany)')}
                 </div>
-                <div style="background: var(--kolor-tlo); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: left;">
-                    <strong>Lekka redukcja: ~${celRedukcja.toFixed(0)} kcal</strong><br>
-                    <small>(<span class="b">B:</span> ${celRedBialko.toFixed(0)}g, <span class="w">W:</span> ${celRedWeglowodany.toFixed(0)}g, <span class="t">T:</span> ${celRedTluszcze.toFixed(0)}g)</small>
-                </div>
-                <button type="button" id="przycisk-zapisz-cel-utrzymanie" data-kcal="${tmr}" data-b="${celBialko}" data-w="${celWeglowodany}" data-t="${celTluszcze}">Zapisz cel (Utrzymanie)</button>
-                <button type="button" id="przycisk-zapisz-cel-redukcja" style="background-color: #ff9500; margin-top: 10px;" data-kcal="${celRedukcja}" data-b="${celRedBialko}" data-w="${celRedWeglowodany}" data-t="${celRedTluszcze}">Zapisz cel (Redukcja)</button>
             `;
+            // Zapisz aktualnie obliczone cele do uchwytu, by handler kliknięć mógł je użyć
+            wynikKalkulatora.dataset.cele = JSON.stringify(cele);
         });
-        
+
         wynikKalkulatora.addEventListener('click', function(e) {
-            if (e.target.id === 'przycisk-zapisz-cel-utrzymanie' || e.target.id === 'przycisk-zapisz-cel-redukcja') {
-                const cel = {
-                    kalorie: parseFloat(e.target.dataset.kcal),
-                    bialko: parseFloat(e.target.dataset.b),
-                    weglowodany: parseFloat(e.target.dataset.w),
-                    tluszcze: parseFloat(e.target.dataset.t)
+            const btn = e.target.closest('.onb-opcja[data-cel-klucz]');
+            if (!btn) return;
+            let cele;
+            try { cele = JSON.parse(wynikKalkulatora.dataset.cele || '{}'); } catch (_) { cele = {}; }
+            const opcja = cele[btn.dataset.celKlucz];
+            if (!opcja) return;
+            zastosujCelIPrzejdz(opcja);
+            alert('Cel zapisany!');
+            document.querySelector('.tab-button[data-screen="dziennik"]').click();
+            document.getElementById('podsumowanie-dnia').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // === Onboarding (pierwsze uruchomienie, gdy nie ma zapisanego celu) ===
+        const modalOnboarding = document.getElementById('modal-onboarding');
+        const onboardingStep0 = document.getElementById('onboarding-step-0');
+        const onboardingStep1 = document.getElementById('onboarding-step-1');
+        const onboardingStep2 = document.getElementById('onboarding-step-2');
+        const formOnboarding = document.getElementById('formularz-onboarding');
+        let onboardingObliczone = null;
+
+        function ustawKrokOnboardingu(krok) {
+            onboardingStep0.style.display = (krok === 0) ? 'block' : 'none';
+            onboardingStep1.style.display = (krok === 1) ? 'block' : 'none';
+            onboardingStep2.style.display = (krok === 2) ? 'block' : 'none';
+            // przewin modal na gore — przy dluzszych krokach
+            const mc = modalOnboarding.querySelector('.modal-content');
+            if (mc) mc.scrollTop = 0;
+        }
+        function wypelnijFormularzOnboarding(dane) {
+            if (!dane) return;
+            const plecRadio = document.querySelector(`input[name="plec-onb"][value="${dane.plec}"]`);
+            if (plecRadio) plecRadio.checked = true;
+            if (dane.wiek != null)      document.getElementById('onb-wiek').value = dane.wiek;
+            if (dane.wzrost != null)    document.getElementById('onb-wzrost').value = dane.wzrost;
+            if (dane.waga != null)      document.getElementById('onb-waga').value = dane.waga;
+            if (dane.aktywnosc != null) document.getElementById('onb-treningi').value = String(dane.aktywnosc);
+        }
+
+        function pokazOnboarding(opcje) {
+            const cfg = opcje || {};
+            formOnboarding.reset();
+            const dane = pobierzDaneOsobowe();
+            wypelnijFormularzOnboarding(dane);
+            ustawKrokOnboardingu(cfg.startKrok != null ? cfg.startKrok : 0);
+            modalOnboarding.style.display = 'flex';
+        }
+        function ukryjOnboarding() {
+            modalOnboarding.style.display = 'none';
+        }
+        document.getElementById('onb-zaczynamy').addEventListener('click', () => {
+            ustawKrokOnboardingu(1);
+        });
+
+        // Szybka zmiana celu — bez ekranu powitalnego.
+        // Jezeli mamy zapisane dane osobowe, idz prosto do wyboru (krok 2).
+        // W przeciwnym razie pokaz formularz (krok 1).
+        function zmienCelSzybko() {
+            const dane = pobierzDaneOsobowe();
+            if (dane && !isNaN(dane.wiek) && !isNaN(dane.wzrost) && !isNaN(dane.waga) && !isNaN(dane.aktywnosc)) {
+                onboardingObliczone = obliczCele(dane.plec, dane.wiek, dane.wzrost, dane.waga, dane.aktywnosc);
+                document.getElementById('onb-tmr').textContent = onboardingObliczone.tmr.toFixed(0);
+                const wpisz = (przedrostek, opcja) => {
+                    document.getElementById(`onb-${przedrostek}-kcal`).textContent = `${opcja.kcal.toFixed(0)} kcal`;
+                    document.getElementById(`onb-${przedrostek}-makro`).textContent =
+                        `B: ${opcja.bialko.toFixed(0)}g · W: ${opcja.weglowodany.toFixed(0)}g · T: ${opcja.tluszcze.toFixed(0)}g`;
                 };
-                zapiszCel(cel);
-                alert('Cel zapisany!');
-                document.querySelector('.tab-button[data-screen="dziennik"]').click();
-                document.getElementById('podsumowanie-dnia').scrollIntoView({ behavior: 'smooth' });
+                wpisz('r', onboardingObliczone.redukcja);
+                wpisz('u', onboardingObliczone.utrzymanie);
+                wpisz('m', onboardingObliczone.masa);
+                wypelnijFormularzOnboarding(dane);
+                modalOnboarding.style.display = 'flex';
+                ustawKrokOnboardingu(2);
+            } else {
+                pokazOnboarding({ startKrok: 1 });
+            }
+        }
+
+        const przyciskZmienCel = document.getElementById('przycisk-zmien-cel');
+        if (przyciskZmienCel) {
+            przyciskZmienCel.addEventListener('click', zmienCelSzybko);
+        }
+
+        formOnboarding.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const plecRadio = document.querySelector('input[name="plec-onb"]:checked');
+            const plec = plecRadio ? plecRadio.value : 'm';
+            const wiek = parseInt(document.getElementById('onb-wiek').value);
+            const wzrost = parseInt(document.getElementById('onb-wzrost').value);
+            const waga = parseFloat(document.getElementById('onb-waga').value);
+            const aktywnosc = parseFloat(document.getElementById('onb-treningi').value);
+            if (isNaN(wiek) || isNaN(wzrost) || isNaN(waga) || isNaN(aktywnosc)) {
+                alert('Wypełnij wszystkie pola.');
+                return;
+            }
+            zapiszDaneOsobowe({ plec, wiek, wzrost, waga, aktywnosc });
+            onboardingObliczone = obliczCele(plec, wiek, wzrost, waga, aktywnosc);
+
+            document.getElementById('onb-tmr').textContent = onboardingObliczone.tmr.toFixed(0);
+
+            const wpisz = (przedrostek, opcja) => {
+                document.getElementById(`onb-${przedrostek}-kcal`).textContent = `${opcja.kcal.toFixed(0)} kcal`;
+                document.getElementById(`onb-${przedrostek}-makro`).textContent =
+                    `B: ${opcja.bialko.toFixed(0)}g · W: ${opcja.weglowodany.toFixed(0)}g · T: ${opcja.tluszcze.toFixed(0)}g`;
+            };
+            wpisz('r', onboardingObliczone.redukcja);
+            wpisz('u', onboardingObliczone.utrzymanie);
+            wpisz('m', onboardingObliczone.masa);
+
+            ustawKrokOnboardingu(2);
+        });
+
+        document.querySelectorAll('#onboarding-step-2 .onb-opcja').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!onboardingObliczone) return;
+                const opcja = onboardingObliczone[btn.dataset.cel];
+                if (!opcja) return;
+                zastosujCelIPrzejdz(opcja);
+                ukryjOnboarding();
+            });
+        });
+
+        document.getElementById('onb-wstecz').addEventListener('click', () => {
+            ustawKrokOnboardingu(1);
+        });
+
+
+        // === FAB posiłków: rozwijane menu z akcjami ===
+        function zamknijMenuPosilkow() {
+            document.querySelectorAll('.ka-meal-menu').forEach(m => m.setAttribute('hidden', ''));
+            document.querySelectorAll('.ka-meal-fab').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        }
+        document.addEventListener('click', function(e) {
+            const fab = e.target.closest('.ka-meal-fab');
+            if (fab) {
+                const menu = fab.parentElement.querySelector('.ka-meal-menu');
+                const wasOpen = !menu.hasAttribute('hidden');
+                zamknijMenuPosilkow();
+                if (!wasOpen) {
+                    menu.removeAttribute('hidden');
+                    fab.setAttribute('aria-expanded', 'true');
+                }
+                return;
+            }
+            const menuItem = e.target.closest('.ka-meal-menu-item');
+            if (menuItem) {
+                zamknijMenuPosilkow();
+                return;
+            }
+            if (!e.target.closest('.ka-meal-menu')) {
+                zamknijMenuPosilkow();
             }
         });
-        
-        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') zamknijMenuPosilkow();
+        });
+
+
         // === Logika Modala Dodawania (ORYGINALNA) ===
         function pokazModalDodawania(kluczPosilku) {
             aktywnyPosilek = kluczPosilku;
@@ -2373,6 +2875,13 @@
         // --- INICJALIZACJA APLIKACJI ---
         sprawdzDate();
         renderujDziennik();
+        odswiezInfoAktualnyCel();
+
+        // Pierwsze uruchomienie: brak zapisanego celu -> pokaż onboarding
+        const istniejacyCel = pobierzCel();
+        if (!istniejacyCel || !istniejacyCel.kalorie || istniejacyCel.kalorie <= 0) {
+            pokazOnboarding();
+        }
     });
 </script>
 
