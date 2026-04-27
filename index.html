@@ -382,6 +382,7 @@
             top: calc(100% + 8px);
             right: 0;
             min-width: 240px;
+            max-width: calc(100vw - 32px);
             background: var(--kolor-tlo-karty);
             border: 1px solid var(--kolor-border);
             border-radius: 14px;
@@ -393,9 +394,18 @@
             gap: 2px;
             animation: kaMealMenuIn 0.15s ease-out;
         }
+        .ka-meal-menu.ka-meal-menu--up {
+            top: auto;
+            bottom: calc(100% + 8px);
+            animation: kaMealMenuInUp 0.15s ease-out;
+        }
         .ka-meal-menu[hidden] { display: none; }
         @keyframes kaMealMenuIn {
             from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes kaMealMenuInUp {
+            from { opacity: 0; transform: translateY(4px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .ka-meal-menu-item {
@@ -820,20 +830,25 @@
         .ka-mrow {
             margin: 14px 0;
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
             column-gap: 10px;
         }
         .ka-mcol-label {
             margin: 0;
-            font-size: 1.3rem;
+            font-size: clamp(0.95rem, 3.6vw, 1.2rem);
             letter-spacing: 0.03em;
             text-align: left;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .ka-mcol-val {
             margin: 0;
-            font-size: 2rem;
+            font-size: clamp(1.2rem, 4.6vw, 1.7rem);
             text-align: right;
+            white-space: nowrap;
         }
         .ka-mrow .progress-bar {
             grid-column: 1 / span 2;
@@ -1059,7 +1074,7 @@
                             <span class="ka-ring-sub">kcal</span>
                         </div>
                     </div>
-                    <p class="ka-kcal-line"><strong id="suma-kalorie">0</strong> / <span id="cel-kalorie">0</span> kcal <span class="ka-goal-pill">UTRZYMANIE</span></p>
+                    <p class="ka-kcal-line"><strong id="suma-kalorie">0</strong> / <span id="cel-kalorie">0</span> kcal <span class="ka-goal-pill" id="cel-typ-pill">UTRZYMANIE</span></p>
                     <div class="progress-bar-container ka-hidden-meter" id="progress-kalorie" aria-hidden="true">
                         <div class="progress-bar"><div class="progress-bar-inner"></div></div>
                     </div>
@@ -1615,6 +1630,13 @@
             document.getElementById('cel-bialko').textContent = cel.bialko.toFixed(1);
             document.getElementById('cel-weglowodany').textContent = cel.weglowodany.toFixed(1);
             document.getElementById('cel-tluszcze').textContent = cel.tluszcze.toFixed(1);
+
+            const pill = document.getElementById('cel-typ-pill');
+            if (pill) {
+                const etykiety = { redukcja: 'REDUKCJA', utrzymanie: 'UTRZYMANIE', masa: 'MASA' };
+                pill.textContent = etykiety[cel.typ] || (cel.kalorie > 0 ? 'UTRZYMANIE' : '—');
+                pill.style.display = cel.kalorie > 0 ? '' : 'none';
+            }
             
             const ustawProgres = (typ, suma, celWartosc) => {
                 const pasek = document.querySelector(`#progress-${typ} .progress-bar-inner`);
@@ -1683,12 +1705,13 @@
             };
         }
 
-        function zastosujCelIPrzejdz(opcja) {
+        function zastosujCelIPrzejdz(opcja, typ) {
             zapiszCel({
                 kalorie: opcja.kcal,
                 bialko: opcja.bialko,
                 weglowodany: opcja.weglowodany,
-                tluszcze: opcja.tluszcze
+                tluszcze: opcja.tluszcze,
+                typ: typ || null
             });
             odswiezInfoAktualnyCel();
         }
@@ -1758,7 +1781,7 @@
             try { cele = JSON.parse(wynikKalkulatora.dataset.cele || '{}'); } catch (_) { cele = {}; }
             const opcja = cele[btn.dataset.celKlucz];
             if (!opcja) return;
-            zastosujCelIPrzejdz(opcja);
+            zastosujCelIPrzejdz(opcja, btn.dataset.celKlucz);
             alert('Cel zapisany!');
             document.querySelector('.tab-button[data-screen="dziennik"]').click();
             document.getElementById('podsumowanie-dnia').scrollIntoView({ behavior: 'smooth' });
@@ -1868,7 +1891,7 @@
                 if (!onboardingObliczone) return;
                 const opcja = onboardingObliczone[btn.dataset.cel];
                 if (!opcja) return;
-                zastosujCelIPrzejdz(opcja);
+                zastosujCelIPrzejdz(opcja, btn.dataset.cel);
                 ukryjOnboarding();
             });
         });
@@ -1880,8 +1903,22 @@
 
         // === FAB posiłków: rozwijane menu z akcjami ===
         function zamknijMenuPosilkow() {
-            document.querySelectorAll('.ka-meal-menu').forEach(m => m.setAttribute('hidden', ''));
+            document.querySelectorAll('.ka-meal-menu').forEach(m => {
+                m.setAttribute('hidden', '');
+                m.classList.remove('ka-meal-menu--up');
+            });
             document.querySelectorAll('.ka-meal-fab').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        }
+        function ustawKierunekMenu(menu) {
+            menu.classList.remove('ka-meal-menu--up');
+            const rect = menu.getBoundingClientRect();
+            const margines = 12;
+            if (rect.bottom > window.innerHeight - margines) {
+                const fabRect = menu.parentElement.getBoundingClientRect();
+                if (fabRect.top - rect.height - margines >= 0) {
+                    menu.classList.add('ka-meal-menu--up');
+                }
+            }
         }
         document.addEventListener('click', function(e) {
             const fab = e.target.closest('.ka-meal-fab');
@@ -1892,6 +1929,7 @@
                 if (!wasOpen) {
                     menu.removeAttribute('hidden');
                     fab.setAttribute('aria-expanded', 'true');
+                    ustawKierunekMenu(menu);
                 }
                 return;
             }
@@ -1907,6 +1945,8 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') zamknijMenuPosilkow();
         });
+        window.addEventListener('resize', zamknijMenuPosilkow);
+        window.addEventListener('scroll', zamknijMenuPosilkow, true);
 
 
         // === Logika Modala Dodawania (ORYGINALNA) ===
