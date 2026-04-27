@@ -1125,6 +1125,16 @@
                 <p style="font-size: 0.82em; color: var(--kolor-tekst-drugi); margin: 10px 0;">
                     Wyniki AI są szacunkowe — możesz je edytować przed dodaniem.
                 </p>
+                <div id="ai-off-sekcja" style="display:none; margin: 6px 0 4px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                        <strong style="font-size:0.92em;">Z bazy produktów (OpenFoodFacts):</strong>
+                        <span id="ai-off-status" style="font-size:0.78em; color: var(--kolor-tekst-drugi);"></span>
+                    </div>
+                    <ul id="ai-off-lista" style="list-style:none; padding:0; margin:0; max-height:180px; overflow-y:auto;"></ul>
+                    <p style="font-size:0.78em; color: var(--kolor-tekst-drugi); margin:6px 0 0;">
+                        Klik podstawi makra przeliczone na wpisaną wagę.
+                    </p>
+                </div>
                 <button type="submit" style="margin-top: 5px;">Dodaj do posiłku</button>
             </form>
             <button id="przycisk-anuluj-ai-wynik" style="background-color: #8e8e93; margin-top: 10px;">Anuluj</button>
@@ -2013,6 +2023,87 @@
             throw ostatniBlad || new Error('UNKNOWN');
         }
 
+        // === OpenFoodFacts dla modala AI (te same wyniki co skaner / wyszukiwanie) ===
+        const aiOffSekcja = document.getElementById('ai-off-sekcja');
+        const aiOffLista = document.getElementById('ai-off-lista');
+        const aiOffStatus = document.getElementById('ai-off-status');
+        let aiOffToken = 0; // do anulowania nieaktualnych zapytan
+
+        function ukryjOffSekcjeAI() {
+            aiOffSekcja.style.display = 'none';
+            aiOffLista.innerHTML = '';
+            aiOffStatus.textContent = '';
+        }
+
+        function podstawMakraZOFF(kalorie100g, bialko100g, weglowodany100g, tluszcze100g) {
+            const waga = parseFloat(aiWaga.value);
+            const m = (!isNaN(waga) && waga > 0) ? (waga / 100) : 1;
+            aiKalorie.value = (kalorie100g * m).toFixed(0);
+            aiBialko.value = (bialko100g * m).toFixed(1);
+            aiWeglowodany.value = (weglowodany100g * m).toFixed(1);
+            aiTluszcze.value = (tluszcze100g * m).toFixed(1);
+            aiWynikStatus.textContent = 'Makra podstawione z OpenFoodFacts.';
+            aiWynikStatus.style.color = 'var(--kolor-glowny)';
+        }
+
+        async function szukajWOFFDlaAI(nazwa) {
+            const token = ++aiOffToken;
+            aiOffSekcja.style.display = 'block';
+            aiOffLista.innerHTML = '';
+            aiOffStatus.textContent = 'Szukam…';
+            aiOffStatus.style.color = '';
+
+            let data;
+            try {
+                data = await pobierzWynikiWyszukiwaniaOFF(nazwa);
+            } catch (err) {
+                if (token !== aiOffToken) return;
+                aiOffStatus.textContent = 'Brak połączenia z bazą.';
+                return;
+            }
+            if (token !== aiOffToken) return;
+
+            const produkty = Array.isArray(data.products) ? data.products : [];
+            const maxWynikow = 5;
+            let dodano = 0;
+
+            for (let i = 0; i < produkty.length && dodano < maxWynikow; i++) {
+                const produkt = produkty[i];
+                const { kcal, b, w, t } = nutrimentsNa100g(produkt.nutriments || {});
+                if (kcal <= 0) continue;
+                const nazwaProd = produkt.product_name_pl || produkt.product_name || produkt.product_name_en || 'Brak nazwy';
+                const producent = (produkt.brands && String(produkt.brands).trim()) || '';
+                const tytul = producent ? `${nazwaProd} (${producent})` : nazwaProd;
+
+                const li = document.createElement('li');
+                li.style.cssText = 'padding:10px 8px; margin-bottom:6px; border-radius:10px; background: var(--kolor-result-row-bg); cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;';
+                const info = document.createElement('div');
+                info.style.cssText = 'flex:1; min-width:0; font-size:0.86em;';
+                info.innerHTML = `
+                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></strong>
+                    <span style="color: var(--kolor-tekst-drugi);">${kcal.toFixed(0)} kcal/100g · <span class="b">B</span>${b}g · <span class="w">W</span>${w}g · <span class="t">T</span>${t}g</span>
+                `;
+                info.querySelector('strong').textContent = tytul;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.style.cssText = 'width:auto; padding:6px 10px; font-size:0.85em; background: var(--kolor-glowny); color:#fff; border:none; border-radius:8px; flex-shrink:0;';
+                btn.textContent = 'Użyj';
+                const handler = () => podstawMakraZOFF(kcal, b, w, t);
+                li.addEventListener('click', handler);
+                btn.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
+                li.appendChild(info);
+                li.appendChild(btn);
+                aiOffLista.appendChild(li);
+                dodano++;
+            }
+
+            if (dodano > 0) {
+                aiOffStatus.textContent = `Dopasowania: ${dodano}`;
+            } else {
+                aiOffStatus.textContent = 'Brak dopasowań w bazie.';
+            }
+        }
+
         function pokazModalAIWynik(wynik, thumbDataUrl) {
             const nazwaPosilku = aktywnyPosilek
                 ? document.getElementById(`naglowek-${aktywnyPosilek}`).textContent
@@ -2031,14 +2122,38 @@
             aiPewnosc.value = wynik.pewnosc != null ? Math.round(Number(wynik.pewnosc) * 100) : '';
 
             aiWynikStatus.textContent = '';
+            aiWynikStatus.style.color = '';
             modalAIWynik.style.display = 'flex';
+
+            // Po pokazaniu: w tle pytamy OFF o ten sam produkt
+            const fraza = (wynik.nazwa || '').trim();
+            if (fraza.length >= 2) {
+                szukajWOFFDlaAI(fraza);
+            } else {
+                ukryjOffSekcjeAI();
+            }
         }
 
         function ukryjModalAIWynik() {
             modalAIWynik.style.display = 'none';
             aiWynikThumb.src = '';
+            aiOffToken++; // anuluj ewentualne zapytanie OFF w toku
+            ukryjOffSekcjeAI();
         }
         przyciskAnulujAIWynik.addEventListener('click', ukryjModalAIWynik);
+
+        // Gdy uzytkownik edytuje nazwe — odswiez liste OFF (z debounce)
+        let aiNazwaDebounce = null;
+        aiNazwa.addEventListener('input', () => {
+            clearTimeout(aiNazwaDebounce);
+            const fraza = (aiNazwa.value || '').trim();
+            if (fraza.length < 2) {
+                aiOffToken++;
+                ukryjOffSekcjeAI();
+                return;
+            }
+            aiNazwaDebounce = setTimeout(() => szukajWOFFDlaAI(fraza), 500);
+        });
 
         function pokazSpinnerAI(thumbDataUrl) {
             naglowekAIWynik.textContent = 'Analizuję zdjęcie…';
@@ -2052,6 +2167,9 @@
             aiTluszcze.value = '';
             aiPewnosc.value = '';
             aiWynikStatus.textContent = 'Wysyłam zdjęcie do Gemini…';
+            aiWynikStatus.style.color = '';
+            aiOffToken++;
+            ukryjOffSekcjeAI();
             modalAIWynik.style.display = 'flex';
         }
 
