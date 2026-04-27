@@ -1653,28 +1653,67 @@
             const kontener = document.getElementById('kontener-skanera');
             kontener.style.display = 'flex';
 
-            // Inicjalizacja instancji (Singleton)
+            // Ograniczamy biblioteke wylacznie do formatow kodow kreskowych produktow.
+            // Bez tego html5-qrcode probuje rozpoznac rowniez QR / cyfry, co powoduje
+            // ze zamiast paskow czyta numer EAN drukowany pod kodem.
+            const formatyKodow = [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.ITF
+            ];
+
+            // Inicjalizacja instancji (Singleton) z ograniczonymi formatami
             if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("skaner-qr-reader");
+                html5QrCode = new Html5Qrcode("skaner-qr-reader", {
+                    formatsToSupport: formatyKodow,
+                    verbose: false
+                });
             }
 
+            // Ramka skanowania szeroka i niska — pasuje do proporcji kodu kreskowego
+            const qrboxFunc = (viewfinderWidth, viewfinderHeight) => {
+                const minBok = Math.min(viewfinderWidth, viewfinderHeight);
+                const szer = Math.floor(Math.min(viewfinderWidth * 0.9, 360));
+                const wys = Math.floor(Math.min(minBok * 0.45, 160));
+                return { width: szer, height: wys };
+            };
+
             const config = {
-                fps: 25, // Większa płynność
-                qrbox: { width: 250, height: 150 },
-                aspectRatio: 1.0,
-                // KLUCZOWE: Sprzętowy detektor kodów
+                fps: 15,
+                qrbox: qrboxFunc,
+                aspectRatio: 1.7778, // 16:9 — wieksze pole widzenia dla kodow kreskowych
+                disableFlip: true,   // kody kreskowe nie sa odbiciem lustrzanym
+                formatsToSupport: formatyKodow,
                 experimentalFeatures: {
                     useBarCodeDetectorIfSupported: true
                 }
             };
 
-            // Uruchomienie kamery tylnej (environment)
+            // Uruchomienie kamery tylnej (environment) z ostrzeniem ciaglym
             html5QrCode.start(
                 { facingMode: "environment" }, 
                 config, 
                 onScanSuccess,
-                (errorMessage) => { /* ignoruj błędy klatka po klatce */ }
-            ).catch(err => {
+                (errorMessage) => { /* ignoruj bledy klatka po klatce */ }
+            ).then(() => {
+                // Probujemy wymusic ciagly autofocus i zoom — pomaga przy malych kodach
+                try {
+                    const track = html5QrCode.getRunningTrackCameraCapabilities &&
+                        html5QrCode.getRunningTrackCameraCapabilities();
+                    const caps = track && track.getCapabilities && track.getCapabilities();
+                    const settings = {};
+                    if (caps && caps.focusMode && caps.focusMode.includes('continuous')) {
+                        settings.focusMode = 'continuous';
+                    }
+                    if (Object.keys(settings).length) {
+                        html5QrCode.applyVideoConstraints({ advanced: [settings] }).catch(() => {});
+                    }
+                } catch (_) { /* nie wszystkie urzadzenia maja te API */ }
+            }).catch(err => {
                 console.error("Błąd kamery:", err);
                 alert("Nie udało się uruchomić kamery. Wymagane HTTPS lub Localhost.");
                 kontener.style.display = 'none';
@@ -1736,9 +1775,6 @@
 
         // === AI: ROZPOZNAWANIE JEDZENIA ZE ZDJĘCIA (Gemini 2.5 Flash) ===
         const kluczStorageGeminiKey = 'dziennikGeminiKey';
-        const GEMINI_MODEL = 'gemini-2.5-flash';
-        const GEMINI_URL = (k) =>
-            `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(k)}`;
 
         const PROMPT_AI = 'Przeanalizuj zdjęcie jedzenia. Zidentyfikuj produkt lub danie i oszacuj wagę w gramach oraz makroskładniki dla CAŁEJ widocznej porcji (nie na 100 g). Jeśli na zdjęciu jest więcej niż jedno danie, podsumuj je jako jedną pozycję z nazwą opisującą całość. Zwróć wyłącznie JSON zgodny ze schematem. Wartości liczbowe zaokrąglij do 1 miejsca po przecinku. Pole pewnosc to liczba 0-1 oznaczająca Twoją pewność rozpoznania. Odpowiadaj po polsku.';
 
@@ -1856,10 +1892,13 @@
             });
         }
 
-        async function zapytajGeminiOZdjecie(base64) {
-            const klucz = pobierzGeminiKey();
-            if (!klucz) throw new Error('NO_KEY');
+        // Lista modeli probowana po kolei — gdy konto nie ma dostepu do 2.5,
+        // automatycznie cofamy sie do 2.0 / 1.5
+        const GEMINI_MODELS_FALLBACK = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        const GEMINI_URL_FOR = (model, k) =>
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(k)}`;
 
+        function buildGeminiBody(base64, useSchema) {
             const body = {
                 contents: [{
                     parts: [
@@ -1869,43 +1908,74 @@
                 }],
                 generationConfig: {
                     responseMimeType: 'application/json',
-                    responseSchema: GEMINI_SCHEMA,
                     temperature: 0.2
                 }
             };
+            if (useSchema) body.generationConfig.responseSchema = GEMINI_SCHEMA;
+            return body;
+        }
 
+        async function wywolajGemini(model, klucz, base64, useSchema) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 45000);
             let response;
             try {
-                response = await fetch(GEMINI_URL(klucz), {
+                response = await fetch(GEMINI_URL_FOR(model, klucz), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
+                    body: JSON.stringify(buildGeminiBody(base64, useSchema)),
                     signal: controller.signal
                 });
             } catch (err) {
                 clearTimeout(timeoutId);
-                if (err && err.name === 'AbortError') throw new Error('TIMEOUT');
-                throw new Error('NETWORK');
+                if (err && err.name === 'AbortError') {
+                    const e = new Error('TIMEOUT'); e.fatal = true; throw e;
+                }
+                const e = new Error('NETWORK'); e.fatal = true; throw e;
             }
             clearTimeout(timeoutId);
 
-            if (response.status === 400 || response.status === 401 || response.status === 403) {
-                throw new Error('BAD_KEY');
-            }
+            // Czytamy tresc — niezaleznie od statusu, by miec szczegolowy komunikat
+            const rawText = await response.text().catch(() => '');
+            let parsedBody = null;
+            try { parsedBody = rawText ? JSON.parse(rawText) : null; } catch (_) {}
+
             if (!response.ok) {
-                throw new Error('HTTP_' + response.status);
+                const apiMsg = parsedBody && parsedBody.error && parsedBody.error.message
+                    ? parsedBody.error.message : '';
+                console.warn('[Gemini]', model, response.status, apiMsg || rawText);
+
+                // 401/403 -> klucz na pewno zly
+                if (response.status === 401 || response.status === 403) {
+                    const e = new Error('BAD_KEY'); e.fatal = true; e.detail = apiMsg; throw e;
+                }
+                // 400 — najczesciej zly request (np. schema nieobslugiwana przez model)
+                // lub blad klucza. Rozrozniamy po tresci.
+                if (response.status === 400) {
+                    const lower = apiMsg.toLowerCase();
+                    if (lower.includes('api key') || lower.includes('api_key')) {
+                        const e = new Error('BAD_KEY'); e.fatal = true; e.detail = apiMsg; throw e;
+                    }
+                    // niefatalny — pozwoli wyzszej warstwie przejsc do fallbacku (bez schemy / inny model)
+                    const e = new Error('BAD_REQUEST'); e.detail = apiMsg; throw e;
+                }
+                if (response.status === 404) {
+                    // model nieosiagalny dla tego klucza — fallback na inny model
+                    const e = new Error('MODEL_NOT_FOUND'); e.detail = apiMsg; throw e;
+                }
+                if (response.status === 429) {
+                    const e = new Error('RATE_LIMIT'); e.fatal = true; e.detail = apiMsg; throw e;
+                }
+                const e = new Error('HTTP_' + response.status); e.detail = apiMsg; throw e;
             }
 
-            let data;
-            try {
-                data = await response.json();
-            } catch (_) {
-                throw new Error('BAD_JSON');
+            const data = parsedBody || {};
+            const cand = data.candidates && data.candidates[0];
+            // Sprawdz powod zakonczenia — np. SAFETY / RECITATION
+            if (cand && cand.finishReason && cand.finishReason !== 'STOP' && cand.finishReason !== 'MAX_TOKENS') {
+                console.warn('[Gemini] finishReason:', cand.finishReason);
             }
-
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const text = cand && cand.content && cand.content.parts && cand.content.parts[0] && cand.content.parts[0].text || '';
             if (!text) throw new Error('EMPTY_RESPONSE');
 
             let parsed;
@@ -1918,6 +1988,29 @@
                 catch (_) { throw new Error('BAD_JSON'); }
             }
             return parsed;
+        }
+
+        async function zapytajGeminiOZdjecie(base64) {
+            const klucz = pobierzGeminiKey();
+            if (!klucz) throw new Error('NO_KEY');
+
+            let ostatniBlad = null;
+            for (const model of GEMINI_MODELS_FALLBACK) {
+                // Najpierw probujemy ze schema (lepsze wyniki), w razie BAD_REQUEST -> bez schema
+                for (const useSchema of [true, false]) {
+                    try {
+                        return await wywolajGemini(model, klucz, base64, useSchema);
+                    } catch (err) {
+                        ostatniBlad = err;
+                        if (err && err.fatal) throw err; // klucz / sieć / timeout — koniec
+                        // BAD_REQUEST -> sproboj bez schemy w tym samym modelu
+                        // MODEL_NOT_FOUND / EMPTY_RESPONSE / BAD_JSON / HTTP_5xx -> idz dalej
+                        if (err && err.message === 'BAD_REQUEST' && useSchema) continue;
+                        break; // przerywamy petle useSchema, idziemy do nastepnego modelu
+                    }
+                }
+            }
+            throw ostatniBlad || new Error('UNKNOWN');
         }
 
         function pokazModalAIWynik(wynik, thumbDataUrl) {
@@ -1964,14 +2057,20 @@
 
         function komunikatBleduAI(err) {
             const msg = err && err.message ? err.message : '';
+            const det = err && err.detail ? ` (${err.detail})` : '';
             switch (msg) {
-                case 'NO_KEY':         return 'Brak klucza Gemini. Dodaj go w Ustawieniach.';
-                case 'BAD_KEY':        return 'Nieprawidłowy klucz Gemini. Sprawdź klucz w Ustawieniach.';
-                case 'TIMEOUT':        return 'Przekroczono czas oczekiwania. Spróbuj ponownie.';
-                case 'NETWORK':        return 'Błąd połączenia. Sprawdź internet i spróbuj ponownie.';
-                case 'BAD_JSON':       return 'AI zwróciło niepoprawną odpowiedź. Spróbuj ponownie lub wypełnij ręcznie.';
-                case 'EMPTY_RESPONSE': return 'AI nie rozpoznało dania. Spróbuj innego ujęcia.';
-                default:               return 'Błąd analizy AI. Spróbuj ponownie lub wypełnij ręcznie.';
+                case 'NO_KEY':          return 'Brak klucza Gemini. Dodaj go w Ustawieniach.';
+                case 'BAD_KEY':         return 'Nieprawidłowy klucz Gemini. Sprawdź klucz w Ustawieniach.' + det;
+                case 'TIMEOUT':         return 'Przekroczono czas oczekiwania. Spróbuj ponownie.';
+                case 'NETWORK':         return 'Błąd połączenia. Sprawdź internet i spróbuj ponownie.';
+                case 'BAD_JSON':        return 'AI zwróciło niepoprawną odpowiedź. Spróbuj ponownie lub wypełnij ręcznie.';
+                case 'EMPTY_RESPONSE':  return 'AI nie rozpoznało dania. Spróbuj innego ujęcia.';
+                case 'BAD_REQUEST':     return 'Gemini odrzucił zapytanie.' + det;
+                case 'MODEL_NOT_FOUND': return 'Twój klucz nie ma dostępu do żadnego modelu Gemini Flash.' + det;
+                case 'RATE_LIMIT':      return 'Przekroczono limit zapytań Gemini. Spróbuj za chwilę.' + det;
+                default:
+                    if (msg.startsWith('HTTP_')) return 'Błąd API Gemini: ' + msg.replace('HTTP_', '') + det;
+                    return 'Błąd analizy AI. Spróbuj ponownie lub wypełnij ręcznie.' + det;
             }
         }
 
