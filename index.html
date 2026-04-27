@@ -388,10 +388,13 @@
             border-radius: 14px;
             box-shadow: 0 8px 24px var(--kolor-shadow);
             padding: 6px;
-            z-index: 50;
+            z-index: 600;
             display: flex;
             flex-direction: column;
             gap: 2px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
             animation: kaMealMenuIn 0.15s ease-out;
         }
         .ka-meal-menu.ka-meal-menu--up {
@@ -1911,13 +1914,27 @@
         }
         function ustawKierunekMenu(menu) {
             menu.classList.remove('ka-meal-menu--up');
-            const rect = menu.getBoundingClientRect();
+            menu.style.maxHeight = '';
+
             const margines = 12;
-            if (rect.bottom > window.innerHeight - margines) {
-                const fabRect = menu.parentElement.getBoundingClientRect();
-                if (fabRect.top - rect.height - margines >= 0) {
-                    menu.classList.add('ka-meal-menu--up');
+            const tabBar = document.getElementById('tab-bar');
+            const wysokoscTabBar = tabBar ? tabBar.offsetHeight : 0;
+            const fabWrap = menu.parentElement;
+            const fabRect = fabWrap.getBoundingClientRect();
+
+            const dostepneNaDole = window.innerHeight - wysokoscTabBar - fabRect.bottom - margines;
+            const dostepneNaGorze = fabRect.top - margines;
+            const wysokoscMenu = menu.scrollHeight;
+
+            const otworzNaGorze = wysokoscMenu > dostepneNaDole && dostepneNaGorze > dostepneNaDole;
+
+            if (otworzNaGorze) {
+                menu.classList.add('ka-meal-menu--up');
+                if (wysokoscMenu > dostepneNaGorze) {
+                    menu.style.maxHeight = `${Math.max(dostepneNaGorze, 160)}px`;
                 }
+            } else if (wysokoscMenu > dostepneNaDole) {
+                menu.style.maxHeight = `${Math.max(dostepneNaDole, 160)}px`;
             }
         }
         document.addEventListener('click', function(e) {
