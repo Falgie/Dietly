@@ -2606,7 +2606,29 @@
                 });
             }
 
-            // Pojedyncze zapytanie z trójwarstwową strategią.
+            // OFF identyfikuje marki przez "slug" — małymi literami, bez diakrytyków,
+            // ze spacjami zamienionymi na myślniki. Tak działa parametr brands_tags=.
+            function brandSlug(s) {
+                return normalize(s).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            }
+
+            // Łączy dwie listy produktów dedup po `code` — pierwsza ma priorytet.
+            function mergeProducts(listA, listB) {
+                const seen = new Set();
+                const out = [];
+                for (const arr of [listA, listB]) {
+                    if (!Array.isArray(arr)) continue;
+                    for (const p of arr) {
+                        const key = p && (p.code || p._id || JSON.stringify(p).slice(0, 80));
+                        if (seen.has(key)) continue;
+                        seen.add(key);
+                        out.push(p);
+                    }
+                }
+                return out;
+            }
+
+            // Pojedyncze zapytanie z trójwarstwową strategią + równoległym brand search.
             async function searchOnce(query, signal) {
                 const cacheKey = 'q=' + query;
                 if (cacheSearch.has(cacheKey)) return cacheSearch.get(cacheKey);
@@ -2615,15 +2637,37 @@
                 let attempts = [];
 
                 // 1) world.openfoodfacts.org/api/v2/search (ma CORS, gdy żyje)
+                //    Strzelamy DWOMA równoległymi zapytaniami: po nazwie + po marce.
                 try {
-                    const params = new URLSearchParams({
-                        search_terms: query,
-                        fields: FIELDS,
-                        page_size: '50',
-                        lc: 'pl',
-                        json: '1'
-                    });
-                    raw = await fetchJSON(ENDPOINT_V2 + '?' + params.toString(), signal);
+                    const slug = brandSlug(query);
+                    const baseFields = { fields: FIELDS, page_size: '50', lc: 'pl', json: '1' };
+                    const urlNazwa = ENDPOINT_V2 + '?' + new URLSearchParams(
+                        Object.assign({ search_terms: query }, baseFields)
+                    ).toString();
+                    const urlMarka = slug
+                        ? ENDPOINT_V2 + '?' + new URLSearchParams(
+                            Object.assign({ brands_tags: slug }, baseFields)
+                          ).toString()
+                        : null;
+
+                    const promises = [fetchJSON(urlNazwa, signal)];
+                    if (urlMarka) promises.push(fetchJSON(urlMarka, signal));
+                    const settled = await Promise.allSettled(promises);
+
+                    const ok = settled
+                        .filter(r => r.status === 'fulfilled' && r.value)
+                        .map(r => r.value);
+                    if (ok.length) {
+                        // Zlej produkty z obu odpowiedzi (po nazwie + po marce), dedup po code.
+                        const merged = mergeProducts(
+                            ok[0] && ok[0].products,
+                            ok[1] && ok[1].products
+                        );
+                        raw = { products: merged, count: merged.length };
+                    } else {
+                        const firstErr = settled.find(r => r.status === 'rejected');
+                        if (firstErr && firstErr.reason) throw firstErr.reason;
+                    }
                 } catch (e) {
                     attempts.push('v2: ' + (e.status || e.message));
                     console.warn('[ProductSearch] world.openfoodfacts.org padło:', e.status || e.message);
@@ -2735,9 +2779,10 @@
                 for (const w of words) {
                     const st = stem(w);
                     let best = -1;
+                    let bestField = -1; // 0..2 = pole nazwy, 3 = brand
                     for (let i = 0; i < haystack.length; i++) {
                         const t = haystack[i]; if (!t) continue;
-                        const isMain = i < 3;
+                        const isBrand = i === 3;
                         let s = -1;
                         if (t === w) s = 0;
                         else if (t.startsWith(w + ' ')) s = 1;
@@ -2749,8 +2794,14 @@
                             else if (t.includes(st)) s = 5;
                         }
                         if (s >= 0) {
-                            if (!isMain) s += 2;
-                            if (best < 0 || s < best) best = s;
+                            // Marka: nie karzemy. Dokładne trafienie marki ("Piątnica")
+                            // ma równy priorytet jak dokładne trafienie nazwy.
+                            // Tylko luźne częściowe trafienia w marce dostają minimalną +1.
+                            if (isBrand && s >= 3) s += 1;
+                            if (best < 0 || s < best) {
+                                best = s;
+                                bestField = i;
+                            }
                         }
                     }
                     if (best >= 0) {
@@ -2822,11 +2873,11 @@
                 const card = document.createElement('div');
                 card.className = 'ps-card';
 
-                // Header: nazwa + marka + tagi makro
+                // Header: nazwa + marka (oba podświetlone na trafione fragmenty)
                 const header = document.createElement('div');
                 header.innerHTML = `
                     <div class="ps-card-name">${highlight(name, query)}</div>
-                    ${brand ? `<div class="ps-card-brand">${escHtml(brand)}</div>` : ''}
+                    ${brand ? `<div class="ps-card-brand"><i class="bi bi-bookmark" aria-hidden="true" style="margin-right:3px;"></i>${highlight(brand, query)}</div>` : ''}
                 `;
 
                 const tags = document.createElement('div');
