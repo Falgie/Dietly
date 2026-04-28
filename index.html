@@ -2153,13 +2153,49 @@
         ];
         const OFF_FIELDS = 'product_name,product_name_pl,product_name_en,brands,nutriments';
 
+        // Normalizacja: lowercase + usuwanie polskich znakow diakrytycznych
+        function normalizujFraze(s) {
+            return (s || '')
+                .toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/ł/g, 'l')
+                .replace(/Ł/g, 'l');
+        }
+
+        // Wybiera najlepsza nazwe produktu (PL > generic > EN)
+        function nazwaProduktu(produkt) {
+            return (
+                produkt.product_name_pl ||
+                produkt.product_name ||
+                produkt.product_name_en ||
+                ''
+            );
+        }
+
+        // Sprawdza czy nazwa pasuje do frazy. Zwraca:
+        //  -1 = brak dopasowania
+        //   0 = nazwa zaczyna sie od frazy (najlepiej)
+        //   1 = nazwa zawiera fraze jako cale slowo
+        //   2 = nazwa zawiera fraze jako podciag
+        function dopasowanieNazwy(nazwa, frazaNorm) {
+            if (!nazwa) return -1;
+            const n = normalizujFraze(nazwa);
+            if (!n) return -1;
+            if (n.startsWith(frazaNorm)) return 0;
+            const re = new RegExp('\\b' + frazaNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+            if (re.test(n)) return 1;
+            if (n.includes(frazaNorm)) return 2;
+            return -1;
+        }
+
         async function probujEndpoint(wyrazenie) {
             const params = new URLSearchParams({
                 search_terms: wyrazenie,
                 fields: OFF_FIELDS,
-                page_size: '30',
+                page_size: '50',
                 lc: 'pl',
-                sort_by: 'popularity_key',
                 json: '1'
             });
             let ostatniBlad = null;
@@ -2223,7 +2259,25 @@
             try {
                 const data = await pobierzWynikiWyszukiwaniaOFF(wyrazenie);
                 if (token !== aktywneWyszukiwanieToken) return; // nowe zapytanie w toku — porzuć stare
-                const produkty = data.products || [];
+                const produktySurowe = data.products || [];
+
+                // FILTROWANIE po nazwie — OFF zwraca dużo śmieci po tagach/składnikach,
+                // zostawiamy tylko produkty, których nazwa faktycznie pasuje do frazy.
+                const frazaNorm = normalizujFraze(wyrazenie);
+                const dopasowane = [];
+                for (const produkt of produktySurowe) {
+                    const nazwa = nazwaProduktu(produkt);
+                    let ranking = dopasowanieNazwy(nazwa, frazaNorm);
+                    // Awaryjnie sprawdzamy też markę (czasem nazwa jest pusta a produkt sensowny)
+                    if (ranking < 0 && produkt.brands) {
+                        const r2 = dopasowanieNazwy(produkt.brands, frazaNorm);
+                        if (r2 >= 0) ranking = r2 + 1; // marka mniej istotna niz nazwa
+                    }
+                    if (ranking >= 0) dopasowane.push({ produkt, ranking });
+                }
+                dopasowane.sort((a, b) => a.ranking - b.ranking);
+                const produkty = dopasowane.map(x => x.produkt);
+
                 let dodano = 0;
                 const maxWynikow = 8;
                 for (let i = 0; i < produkty.length && dodano < maxWynikow; i++) {
@@ -2231,7 +2285,7 @@
                     const p = produkt.nutriments || {};
                     const { kcal: kalorieNa100g, b: bialkoNa100g, w: weglowodanyNa100g, t: tluszczeNa100g } = nutrimentsNa100g(p);
                     if (kalorieNa100g <= 0) continue;
-                    const nazwa = produkt.product_name_pl || produkt.product_name || produkt.product_name_en || 'Brak nazwy';
+                    const nazwa = nazwaProduktu(produkt) || 'Brak nazwy';
                     const producent = (produkt.brands && String(produkt.brands).trim()) || '';
                     const pelnaNazwa = producent ? `${nazwa} (${producent})` : nazwa;
                     const li = document.createElement('li');
@@ -2260,8 +2314,10 @@
                 }
                 if (dodano > 0) {
                     statusWyszukiwania.textContent = `Wyniki dla: „${wyrazenie}”`;
-                } else if (produkty.length === 0) {
+                } else if (produktySurowe.length === 0) {
                     statusWyszukiwania.textContent = `Brak wyników dla „${wyrazenie}”.`;
+                } else if (produkty.length === 0) {
+                    statusWyszukiwania.textContent = `Nie znaleziono produktów o nazwie „${wyrazenie}”. Spróbuj innej frazy.`;
                 } else {
                     statusWyszukiwania.textContent = 'Brak produktów z uzupełnionymi kaloriami. Spróbuj innej frazy.';
                 }
