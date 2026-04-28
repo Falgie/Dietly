@@ -13,7 +13,8 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIk1vaiBEdmllbm5payBLYWxvcmllIiwKICAic2hvcnRfbmFtZSI6ICJEemllbm5payIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZmZmZmZmIiwKICAidGhlbWVfY29vb3IiOiAiIzAwN2FmZiIsCiAgImRlc2NyaXB0aW9uIjogIlByb3N0eSBkemllbm5payBrYWxvcmllIGkgbWFrcm8uIiwKICAiaWNvbnMiOiBbCiAgICB7ICJzcmMiOiAiaWNvbi01MTIucG5nIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiwgInNpemVzIjogIjUxMng1MTIiIH0KICBdCn0=">
     
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+    <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
@@ -608,19 +609,124 @@
         #wyniki-wyszukiwania .info { flex-grow: 1; margin-right: 10px; }
         #wyniki-wyszukiwania .przycisk-dodaj-z-wyszukiwania { font-size: 1.5em; padding: 0 10px; }
 
-        /* Styl Skanera (jako modal) */
+        /* Styl Skanera (fullscreen) */
         #kontener-skanera {
-            align-items: flex-start;
-            padding-top: 20px;
+            align-items: stretch;
+            justify-content: stretch;
+            padding: 0;
+            background-color: #000;
         }
-        #skaner-qr-reader {
-            width: 90%; max-width: 500px;
-            background-color: #333; border-radius: 8px;
-            overflow: hidden; border: 1px solid #555;
+        #skaner-video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
         }
-        #przycisk-zamknij-skaner { 
-            position: absolute; bottom: 40px;
-            width: 200px; background-color: #ff3b30;
+        #skaner-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        #skaner-ramka {
+            position: relative;
+            width: min(86%, 480px);
+            aspect-ratio: 16 / 9;
+            border-radius: 14px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,.55);
+            overflow: visible;
+        }
+        #skaner-ramka .corner {
+            position: absolute;
+            width: 28px; height: 28px;
+            border: 4px solid var(--kolor-glowny);
+        }
+        #skaner-ramka .corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 12px; }
+        #skaner-ramka .corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 12px; }
+        #skaner-ramka .corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 12px; }
+        #skaner-ramka .corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 12px; }
+        #skaner-linia {
+            position: absolute;
+            left: 6%; right: 6%;
+            top: 50%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ff3b30, transparent);
+            box-shadow: 0 0 12px #ff3b30;
+            animation: skanerScan 1.6s ease-in-out infinite alternate;
+        }
+        @keyframes skanerScan {
+            0%   { top: 12%; }
+            100% { top: 88%; }
+        }
+        #skaner-status {
+            margin-top: 18px;
+            color: #fff;
+            background: rgba(0,0,0,.55);
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.95em;
+            text-align: center;
+            max-width: 86%;
+        }
+        #skaner-przyciski-gora {
+            position: absolute;
+            top: max(16px, env(safe-area-inset-top));
+            right: 16px;
+            display: flex;
+            gap: 10px;
+            z-index: 1002;
+        }
+        .skaner-btn-ikon {
+            width: 46px; height: 46px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.25);
+            background: rgba(255,255,255,.15);
+            color: #fff;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            font-size: 1.15em;
+            display: none;
+            align-items: center; justify-content: center;
+            padding: 0;
+            cursor: pointer;
+        }
+        .skaner-btn-ikon.dostepny { display: inline-flex; }
+        .skaner-btn-ikon.aktywny {
+            background: var(--kolor-akcent-pomarancz);
+            color: #000;
+            border-color: var(--kolor-akcent-pomarancz);
+        }
+        #skaner-przyciski-dol {
+            position: absolute;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            left: 0; right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 1002;
+            padding: 0 16px;
+        }
+        #przycisk-reczny-kod {
+            background: rgba(255,255,255,.15);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,.3);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            width: 220px;
+            padding: 12px 14px;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+        #przycisk-zamknij-skaner {
+            position: static;
+            width: 220px;
+            background-color: #ff3b30;
             z-index: 1001;
         }
 
@@ -1303,8 +1409,25 @@
     </div>
 
     <div id="kontener-skanera" class="modal-overlay">
-        <div id="skaner-qr-reader"></div>
-        <button id="przycisk-zamknij-skaner">Anuluj</button>
+        <video id="skaner-video" autoplay playsinline muted></video>
+        <div id="skaner-overlay">
+            <div id="skaner-ramka">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+                <div id="skaner-linia"></div>
+            </div>
+            <div id="skaner-status">Skieruj kamerę na kod kreskowy</div>
+        </div>
+        <div id="skaner-przyciski-gora">
+            <button type="button" id="przycisk-zoom-skaner" class="skaner-btn-ikon" aria-label="Powiększenie"><i class="bi bi-zoom-in"></i></button>
+            <button type="button" id="przycisk-latarka-skaner" class="skaner-btn-ikon" aria-label="Latarka"><i class="bi bi-lightning-charge-fill"></i></button>
+        </div>
+        <div id="skaner-przyciski-dol">
+            <button type="button" id="przycisk-reczny-kod">Wpisz kod ręcznie</button>
+            <button id="przycisk-zamknij-skaner">Anuluj</button>
+        </div>
     </div>
 
     <input type="file" id="foto-input" accept="image/*" capture="environment" hidden>
@@ -1471,7 +1594,16 @@
 
         // === ZMIENNE GLOBALNE ===
         let aktywnyPosilek = null;
-        let html5QrCode = null; // ZMIANA: Nowa nazwa zmiennej dla szybkiego skanera
+        // === SKANER KODÓW KRESKOWYCH (BarcodeDetector + ZXing fallback) ===
+        let skanerStream = null;
+        let skanerScanning = false;
+        let skanerCodeReader = null;     // instancja ZXing BrowserMultiFormatReader (fallback)
+        let skanerZxingControls = null;  // controls do zatrzymania ZXing
+        let skanerNativeDetector = null; // BarcodeDetector (gdy dostepny)
+        let skanerVideoTrack = null;
+        let skanerTorchOn = false;
+        let skanerZoomLevel = 1;
+        let skanerZoomCaps = null;
 
         // Klucze LocalStorage
         const kluczStorageData = 'dziennikData';
@@ -2206,106 +2338,229 @@
             }
         });
 
-        // === SZYBKI SKANER (POPRAWIONY) ===
-        
-        function onScanSuccess(decodedText, decodedResult) {
-            // Zatrzymujemy skaner od razu po wykryciu
-            stopSkanera().then(() => {
-                console.log(`Kod: ${decodedText}`);
-                wyszukajPoKodzie(decodedText);
-            });
+        // === SZYBKI SKANER KODÓW KRESKOWYCH ===
+
+        const skanerVideo         = document.getElementById('skaner-video');
+        const skanerStatus        = document.getElementById('skaner-status');
+        const przyciskLatarka     = document.getElementById('przycisk-latarka-skaner');
+        const przyciskZoom        = document.getElementById('przycisk-zoom-skaner');
+        const przyciskRecznyKod   = document.getElementById('przycisk-reczny-kod');
+
+        function ustawStatusSkanera(tekst) {
+            if (skanerStatus) skanerStatus.textContent = tekst;
         }
 
-        function startSkanera() {
+        async function utworzDetektorKodow() {
+            // 1) BarcodeDetector — natywny, bardzo szybki i dokładny (Chrome / Android)
+            if ('BarcodeDetector' in window) {
+                try {
+                    const obslugiwane = await window.BarcodeDetector.getSupportedFormats();
+                    const chciane = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
+                    const formats = chciane.filter(f => obslugiwane.includes(f));
+                    if (formats.length) {
+                        return { typ: 'native', detector: new window.BarcodeDetector({ formats }) };
+                    }
+                } catch (_) { /* fallthrough */ }
+            }
+            // 2) ZXing — fallback (iOS Safari nie wspiera 1D w BarcodeDetector)
+            if (typeof ZXingBrowser !== 'undefined' && ZXingBrowser.BrowserMultiFormatReader) {
+                let hints = null;
+                try {
+                    if (typeof ZXing !== 'undefined' && ZXing.DecodeHintType && ZXing.BarcodeFormat) {
+                        hints = new Map();
+                        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+                            ZXing.BarcodeFormat.EAN_13,
+                            ZXing.BarcodeFormat.EAN_8,
+                            ZXing.BarcodeFormat.UPC_A,
+                            ZXing.BarcodeFormat.UPC_E,
+                            ZXing.BarcodeFormat.CODE_128,
+                            ZXing.BarcodeFormat.CODE_39,
+                            ZXing.BarcodeFormat.ITF
+                        ]);
+                        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                    }
+                } catch (_) {}
+                const reader = hints
+                    ? new ZXingBrowser.BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 })
+                    : new ZXingBrowser.BrowserMultiFormatReader(undefined, { delayBetweenScanAttempts: 120 });
+                return { typ: 'zxing', reader };
+            }
+            return null;
+        }
+
+        async function petlaNatywna() {
+            if (!skanerScanning || !skanerNativeDetector) return;
+            try {
+                if (skanerVideo.readyState >= 2) {
+                    const wyniki = await skanerNativeDetector.detect(skanerVideo);
+                    if (wyniki && wyniki.length) {
+                        obsluzWykrytyKod(wyniki[0].rawValue);
+                        return;
+                    }
+                }
+            } catch (_) { /* ignoruj pojedynczych klatek */ }
+            setTimeout(petlaNatywna, 110);
+        }
+
+        function obsluzWykrytyKod(text) {
+            if (!skanerScanning) return;
+            const kod = (text || '').trim();
+            if (!kod) return;
+            skanerScanning = false;
+            ustawStatusSkanera('Znaleziono kod: ' + kod);
+            try { if (navigator.vibrate) navigator.vibrate(80); } catch (_) {}
+            stopSkanera().then(() => wyszukajPoKodzie(kod));
+        }
+
+        async function startSkanera() {
             if (!aktywnyPosilek) { alert("Błąd: Nie wybrano posiłku."); return; }
-            
-            const kontener = document.getElementById('kontener-skanera');
-            kontener.style.display = 'flex';
 
-            // Ograniczamy biblioteke wylacznie do formatow kodow kreskowych produktow.
-            // Bez tego html5-qrcode probuje rozpoznac rowniez QR / cyfry, co powoduje
-            // ze zamiast paskow czyta numer EAN drukowany pod kodem.
-            const formatyKodow = [
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.ITF
-            ];
+            kontenerSkanera.style.display = 'flex';
+            przyciskLatarka.classList.remove('dostepny','aktywny');
+            przyciskZoom.classList.remove('dostepny','aktywny');
+            skanerTorchOn = false;
+            skanerZoomLevel = 1;
+            ustawStatusSkanera('Uruchamiam kamerę…');
 
-            // Inicjalizacja instancji (Singleton) z ograniczonymi formatami
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("skaner-qr-reader", {
-                    formatsToSupport: formatyKodow,
-                    verbose: false
+            try {
+                skanerStream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width:  { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 30 }
+                    }
                 });
+            } catch (err) {
+                console.error('Kamera niedostępna:', err);
+                alert('Nie udało się uruchomić kamery. Wymagane HTTPS lub localhost oraz zgoda na dostęp do kamery.');
+                kontenerSkanera.style.display = 'none';
+                return;
             }
 
-            // Ramka skanowania szeroka i niska — pasuje do proporcji kodu kreskowego
-            const qrboxFunc = (viewfinderWidth, viewfinderHeight) => {
-                const minBok = Math.min(viewfinderWidth, viewfinderHeight);
-                const szer = Math.floor(Math.min(viewfinderWidth * 0.9, 360));
-                const wys = Math.floor(Math.min(minBok * 0.45, 160));
-                return { width: szer, height: wys };
-            };
+            skanerVideo.srcObject = skanerStream;
+            skanerVideoTrack = skanerStream.getVideoTracks()[0] || null;
 
-            const config = {
-                fps: 15,
-                qrbox: qrboxFunc,
-                aspectRatio: 1.7778, // 16:9 — wieksze pole widzenia dla kodow kreskowych
-                disableFlip: true,   // kody kreskowe nie sa odbiciem lustrzanym
-                formatsToSupport: formatyKodow,
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
+            try { await skanerVideo.play(); } catch (_) {}
+
+            // Wymuszamy ciagly autofocus + sprawdzamy mozliwosci (torch, zoom)
+            try {
+                if (skanerVideoTrack && skanerVideoTrack.getCapabilities) {
+                    const caps = skanerVideoTrack.getCapabilities() || {};
+                    const advanced = [];
+                    if (caps.focusMode && caps.focusMode.includes && caps.focusMode.includes('continuous')) {
+                        advanced.push({ focusMode: 'continuous' });
+                    }
+                    if (advanced.length) {
+                        try { await skanerVideoTrack.applyConstraints({ advanced }); } catch (_) {}
+                    }
+                    if (caps.torch) przyciskLatarka.classList.add('dostepny');
+                    if (caps.zoom) {
+                        skanerZoomCaps = caps.zoom;
+                        przyciskZoom.classList.add('dostepny');
+                    }
                 }
-            };
+            } catch (_) {}
 
-            // Uruchomienie kamery tylnej (environment) z ostrzeniem ciaglym
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config, 
-                onScanSuccess,
-                (errorMessage) => { /* ignoruj bledy klatka po klatce */ }
-            ).then(() => {
-                // Probujemy wymusic ciagly autofocus i zoom — pomaga przy malych kodach
+            // Inicjalizacja detektora
+            skanerScanning = true;
+            const detektor = await utworzDetektorKodow();
+            if (!detektor) {
+                ustawStatusSkanera('Brak obsługi skanera w tej przeglądarce.');
+                return;
+            }
+
+            ustawStatusSkanera('Skieruj kamerę na kod kreskowy');
+
+            if (detektor.typ === 'native') {
+                skanerNativeDetector = detektor.detector;
+                petlaNatywna();
+            } else {
+                skanerCodeReader = detektor.reader;
                 try {
-                    const track = html5QrCode.getRunningTrackCameraCapabilities &&
-                        html5QrCode.getRunningTrackCameraCapabilities();
-                    const caps = track && track.getCapabilities && track.getCapabilities();
-                    const settings = {};
-                    if (caps && caps.focusMode && caps.focusMode.includes('continuous')) {
-                        settings.focusMode = 'continuous';
-                    }
-                    if (Object.keys(settings).length) {
-                        html5QrCode.applyVideoConstraints({ advanced: [settings] }).catch(() => {});
-                    }
-                } catch (_) { /* nie wszystkie urzadzenia maja te API */ }
-            }).catch(err => {
-                console.error("Błąd kamery:", err);
-                alert("Nie udało się uruchomić kamery. Wymagane HTTPS lub Localhost.");
-                kontener.style.display = 'none';
-            });
+                    skanerZxingControls = await skanerCodeReader.decodeFromStream(
+                        skanerStream,
+                        skanerVideo,
+                        (result, err, controls) => {
+                            if (!skanerScanning) return;
+                            if (result) {
+                                obsluzWykrytyKod(result.getText());
+                            }
+                        }
+                    );
+                } catch (e) {
+                    console.error('Błąd ZXing:', e);
+                    ustawStatusSkanera('Nie udało się uruchomić skanera.');
+                }
+            }
         }
 
-        function stopSkanera() {
-            return new Promise((resolve) => {
-                const kontener = document.getElementById('kontener-skanera');
-                if (html5QrCode && html5QrCode.isScanning) {
-                    html5QrCode.stop().then(() => {
-                        kontener.style.display = 'none';
-                        resolve();
-                    }).catch(err => {
-                        kontener.style.display = 'none';
-                        resolve();
-                    });
-                } else {
-                    kontener.style.display = 'none';
-                    resolve();
-                }
-            });
+        async function stopSkanera() {
+            skanerScanning = false;
+            skanerNativeDetector = null;
+
+            if (skanerZxingControls) {
+                try { skanerZxingControls.stop(); } catch (_) {}
+                skanerZxingControls = null;
+            }
+            if (skanerCodeReader) {
+                try {
+                    if (typeof skanerCodeReader.reset === 'function') skanerCodeReader.reset();
+                } catch (_) {}
+                skanerCodeReader = null;
+            }
+
+            if (skanerVideoTrack) {
+                try { skanerVideoTrack.stop(); } catch (_) {}
+                skanerVideoTrack = null;
+            }
+            if (skanerStream) {
+                try { skanerStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+                skanerStream = null;
+            }
+            if (skanerVideo) skanerVideo.srcObject = null;
+
+            kontenerSkanera.style.display = 'none';
         }
+
+        // Latarka
+        przyciskLatarka.addEventListener('click', async () => {
+            if (!skanerVideoTrack || !przyciskLatarka.classList.contains('dostepny')) return;
+            skanerTorchOn = !skanerTorchOn;
+            try {
+                await skanerVideoTrack.applyConstraints({ advanced: [{ torch: skanerTorchOn }] });
+                przyciskLatarka.classList.toggle('aktywny', skanerTorchOn);
+            } catch (e) {
+                skanerTorchOn = false;
+                przyciskLatarka.classList.remove('aktywny');
+            }
+        });
+
+        // Zoom — przelacza miedzy 1x / 2x / 3x (jezeli sprzet pozwala)
+        przyciskZoom.addEventListener('click', async () => {
+            if (!skanerVideoTrack || !skanerZoomCaps) return;
+            const max = skanerZoomCaps.max || 3;
+            const min = skanerZoomCaps.min || 1;
+            const krok = (skanerZoomCaps.step && skanerZoomCaps.step > 0) ? skanerZoomCaps.step : 1;
+            let nowy = skanerZoomLevel + krok;
+            if (nowy > max) nowy = min;
+            try {
+                await skanerVideoTrack.applyConstraints({ advanced: [{ zoom: nowy }] });
+                skanerZoomLevel = nowy;
+                przyciskZoom.classList.toggle('aktywny', nowy > min);
+            } catch (_) {}
+        });
+
+        // Awaryjne wpisanie kodu z opakowania
+        przyciskRecznyKod.addEventListener('click', async () => {
+            const kod = prompt('Wpisz numer kodu kreskowego (EAN-13, EAN-8 lub UPC):');
+            if (!kod) return;
+            const oczyszczony = kod.replace(/\D/g, '');
+            if (oczyszczony.length < 6) { alert('To nie wygląda na poprawny kod kreskowy.'); return; }
+            await stopSkanera();
+            wyszukajPoKodzie(oczyszczony);
+        });
 
         async function wyszukajPoKodzie(kod) {
             pokazModalDodawania(aktywnyPosilek); 
