@@ -2380,11 +2380,20 @@
         //   ProductSearch.bestName(produkt)         — helper nazwy (dla AI)
         // =====================================================================
         const ProductSearch = (() => {
-            // Search-a-licious — szybki, dedykowany serwer OFF do wyszukiwania.
-            // Główny world.openfoodfacts.org/api/v2/search bywa rzadziej dostępny (503).
-            const ENDPOINT_SEARCH_PRIMARY  = 'https://search.openfoodfacts.org/search';
-            const ENDPOINT_SEARCH_FALLBACK = 'https://world.openfoodfacts.org/api/v2/search';
-            const ENDPOINT_PRODUCT = 'https://world.openfoodfacts.org/api/v0/product/';
+            // === STRATEGIA SIECIOWA ===
+            // OFF jest często niestabilny (HTTP 503). Próbujemy w kolejności:
+            //  1) world.openfoodfacts.org/api/v2/search — ma CORS, gdy żyje to najlepsze.
+            //  2) search.openfoodfacts.org PRZEZ corsproxy.io — działa zawsze, gdy główny pada.
+            //     (search.openfoodfacts.org sam nie ma CORS, dlatego proxy.)
+            //  3) Wbudowany mini-słownik — ratunek offline dla podstawowych produktów.
+            const ENDPOINT_V2          = 'https://world.openfoodfacts.org/api/v2/search';
+            const ENDPOINT_PRODUCT     = 'https://world.openfoodfacts.org/api/v0/product/';
+            const ENDPOINT_SEARCHALIC  = 'https://search.openfoodfacts.org/search';
+            // Darmowe CORS proxy — używane do search.openfoodfacts.org gdy world.* pada.
+            const CORS_PROXIES = [
+                u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),
+                u => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u)
+            ];
             const FIELDS = 'code,product_name,product_name_pl,product_name_en,brands,nutriments';
             const TIMEOUT_MS  = 12000;
             const RETRY_LIMIT = 3;
@@ -2530,14 +2539,12 @@
                 throw lastErr;
             }
 
-            // Adapter: oba endpointy mają różny kształt odpowiedzi.
-            // Search-a-licious: { hits: [{... brands: [str], ...}], count }
-            // Legacy v2:        { products: [{... brands: "str", ...}], count }
-            // Sprowadzamy do wspólnego: { products: [...], count } + brands jako string.
+            // Normalizator odpowiedzi z OFF (oba endpointy zwracają { products: [...] }
+            // ze stringowym brands, ale są drobne różnice — ujednolicamy).
             function normalizeResponse(raw) {
                 if (!raw || typeof raw !== 'object') return { products: [], count: 0 };
-                const list = Array.isArray(raw.hits) ? raw.hits
-                           : Array.isArray(raw.products) ? raw.products
+                const list = Array.isArray(raw.products) ? raw.products
+                           : Array.isArray(raw.hits) ? raw.hits
                            : [];
                 const products = list.map(p => {
                     const brandsStr = Array.isArray(p.brands)
@@ -2548,28 +2555,67 @@
                 return { products, count: raw.count || products.length };
             }
 
-            // Pojedyncze zapytanie — primary (search-a-licious), fallback do v2 OFF.
+            // === Lokalny mini-słownik (offline ratunek) ===
+            // Tylko bardzo podstawowe, bez marek; aktywuje się gdy oba endpointy zawiodą.
+            const LOCAL_PRODUCTS = [
+                { product_name_pl: 'Jogurt naturalny',           brands: '', nutriments: { 'energy-kcal_100g': 61,  proteins_100g: 3.5, carbohydrates_100g: 4.7, fat_100g: 3.3 } },
+                { product_name_pl: 'Jogurt grecki',              brands: '', nutriments: { 'energy-kcal_100g': 97,  proteins_100g: 9.0, carbohydrates_100g: 3.6, fat_100g: 5.0 } },
+                { product_name_pl: 'Twaróg półtłusty',           brands: '', nutriments: { 'energy-kcal_100g': 133, proteins_100g: 18.0, carbohydrates_100g: 3.5, fat_100g: 5.0 } },
+                { product_name_pl: 'Twaróg chudy',               brands: '', nutriments: { 'energy-kcal_100g': 99,  proteins_100g: 19.8, carbohydrates_100g: 3.5, fat_100g: 0.5 } },
+                { product_name_pl: 'Mleko 2%',                   brands: '', nutriments: { 'energy-kcal_100g': 51,  proteins_100g: 3.4, carbohydrates_100g: 4.8, fat_100g: 2.0 } },
+                { product_name_pl: 'Mleko 3,2%',                 brands: '', nutriments: { 'energy-kcal_100g': 64,  proteins_100g: 3.4, carbohydrates_100g: 4.8, fat_100g: 3.2 } },
+                { product_name_pl: 'Ser żółty Gouda',            brands: '', nutriments: { 'energy-kcal_100g': 356, proteins_100g: 25.0, carbohydrates_100g: 0.5, fat_100g: 28.0 } },
+                { product_name_pl: 'Mozzarella',                 brands: '', nutriments: { 'energy-kcal_100g': 254, proteins_100g: 18.5, carbohydrates_100g: 2.2, fat_100g: 19.5 } },
+                { product_name_pl: 'Jajko (1 szt., ok. 60 g)',   brands: '', nutriments: { 'energy-kcal_100g': 143, proteins_100g: 12.6, carbohydrates_100g: 0.7, fat_100g: 9.5 } },
+                { product_name_pl: 'Pierś z kurczaka surowa',    brands: '', nutriments: { 'energy-kcal_100g': 110, proteins_100g: 21.5, carbohydrates_100g: 0.0, fat_100g: 2.6 } },
+                { product_name_pl: 'Udko z kurczaka',            brands: '', nutriments: { 'energy-kcal_100g': 175, proteins_100g: 18.0, carbohydrates_100g: 0.0, fat_100g: 11.0 } },
+                { product_name_pl: 'Schab wieprzowy surowy',     brands: '', nutriments: { 'energy-kcal_100g': 145, proteins_100g: 21.0, carbohydrates_100g: 0.0, fat_100g: 6.5 } },
+                { product_name_pl: 'Łosoś surowy',               brands: '', nutriments: { 'energy-kcal_100g': 208, proteins_100g: 20.0, carbohydrates_100g: 0.0, fat_100g: 13.0 } },
+                { product_name_pl: 'Tuńczyk w sosie własnym',    brands: '', nutriments: { 'energy-kcal_100g': 116, proteins_100g: 26.0, carbohydrates_100g: 0.0, fat_100g: 1.0 } },
+                { product_name_pl: 'Ryż biały (suchy)',          brands: '', nutriments: { 'energy-kcal_100g': 350, proteins_100g: 7.0, carbohydrates_100g: 78.0, fat_100g: 1.0 } },
+                { product_name_pl: 'Ryż brązowy (suchy)',        brands: '', nutriments: { 'energy-kcal_100g': 360, proteins_100g: 8.0, carbohydrates_100g: 75.0, fat_100g: 2.5 } },
+                { product_name_pl: 'Makaron pszenny (suchy)',    brands: '', nutriments: { 'energy-kcal_100g': 365, proteins_100g: 12.0, carbohydrates_100g: 73.0, fat_100g: 1.5 } },
+                { product_name_pl: 'Kasza gryczana (sucha)',     brands: '', nutriments: { 'energy-kcal_100g': 343, proteins_100g: 12.6, carbohydrates_100g: 71.0, fat_100g: 3.1 } },
+                { product_name_pl: 'Płatki owsiane',             brands: '', nutriments: { 'energy-kcal_100g': 379, proteins_100g: 13.5, carbohydrates_100g: 67.0, fat_100g: 7.0 } },
+                { product_name_pl: 'Chleb pszenny',              brands: '', nutriments: { 'energy-kcal_100g': 250, proteins_100g: 8.0, carbohydrates_100g: 50.0, fat_100g: 2.5 } },
+                { product_name_pl: 'Chleb żytni',                brands: '', nutriments: { 'energy-kcal_100g': 230, proteins_100g: 7.5, carbohydrates_100g: 47.0, fat_100g: 1.5 } },
+                { product_name_pl: 'Banan',                      brands: '', nutriments: { 'energy-kcal_100g': 89,  proteins_100g: 1.1, carbohydrates_100g: 22.8, fat_100g: 0.3 } },
+                { product_name_pl: 'Jabłko',                     brands: '', nutriments: { 'energy-kcal_100g': 52,  proteins_100g: 0.3, carbohydrates_100g: 13.8, fat_100g: 0.2 } },
+                { product_name_pl: 'Pomidor',                    brands: '', nutriments: { 'energy-kcal_100g': 18,  proteins_100g: 0.9, carbohydrates_100g: 3.9, fat_100g: 0.2 } },
+                { product_name_pl: 'Ogórek',                     brands: '', nutriments: { 'energy-kcal_100g': 16,  proteins_100g: 0.7, carbohydrates_100g: 3.6, fat_100g: 0.1 } },
+                { product_name_pl: 'Ziemniak gotowany',          brands: '', nutriments: { 'energy-kcal_100g': 87,  proteins_100g: 1.9, carbohydrates_100g: 20.0, fat_100g: 0.1 } },
+                { product_name_pl: 'Marchew',                    brands: '', nutriments: { 'energy-kcal_100g': 41,  proteins_100g: 0.9, carbohydrates_100g: 9.6, fat_100g: 0.2 } },
+                { product_name_pl: 'Cebula',                     brands: '', nutriments: { 'energy-kcal_100g': 40,  proteins_100g: 1.1, carbohydrates_100g: 9.3, fat_100g: 0.1 } },
+                { product_name_pl: 'Sałata',                     brands: '', nutriments: { 'energy-kcal_100g': 15,  proteins_100g: 1.4, carbohydrates_100g: 2.9, fat_100g: 0.2 } },
+                { product_name_pl: 'Awokado',                    brands: '', nutriments: { 'energy-kcal_100g': 160, proteins_100g: 2.0, carbohydrates_100g: 8.5, fat_100g: 14.7 } },
+                { product_name_pl: 'Masło',                      brands: '', nutriments: { 'energy-kcal_100g': 717, proteins_100g: 0.9, carbohydrates_100g: 0.1, fat_100g: 81.0 } },
+                { product_name_pl: 'Oliwa z oliwek',             brands: '', nutriments: { 'energy-kcal_100g': 884, proteins_100g: 0.0, carbohydrates_100g: 0.0, fat_100g: 100.0 } },
+                { product_name_pl: 'Cukier',                     brands: '', nutriments: { 'energy-kcal_100g': 387, proteins_100g: 0.0, carbohydrates_100g: 100.0, fat_100g: 0.0 } },
+                { product_name_pl: 'Miód',                       brands: '', nutriments: { 'energy-kcal_100g': 304, proteins_100g: 0.3, carbohydrates_100g: 82.0, fat_100g: 0.0 } },
+                { product_name_pl: 'Orzechy włoskie',            brands: '', nutriments: { 'energy-kcal_100g': 654, proteins_100g: 15.2, carbohydrates_100g: 14.0, fat_100g: 65.0 } },
+                { product_name_pl: 'Migdały',                    brands: '', nutriments: { 'energy-kcal_100g': 579, proteins_100g: 21.0, carbohydrates_100g: 22.0, fat_100g: 49.9 } }
+            ];
+
+            function searchLocal(query) {
+                const qn = normalize(query);
+                const words = qn.split(/\s+/).filter(w => w.length >= 2);
+                if (!words.length) return [];
+                return LOCAL_PRODUCTS.filter(p => {
+                    const t = normalize(p.product_name_pl);
+                    return words.some(w => t.includes(w) || t.includes(stem(w)));
+                });
+            }
+
+            // Pojedyncze zapytanie z trójwarstwową strategią.
             async function searchOnce(query, signal) {
                 const cacheKey = 'q=' + query;
                 if (cacheSearch.has(cacheKey)) return cacheSearch.get(cacheKey);
 
                 let raw = null;
-                let primaryErr = null;
-                try {
-                    const params = new URLSearchParams({
-                        q: query,
-                        fields: FIELDS,
-                        page_size: '50',
-                        langs: 'pl,en'
-                    });
-                    raw = await fetchJSON(ENDPOINT_SEARCH_PRIMARY + '?' + params.toString(), signal);
-                } catch (e) {
-                    primaryErr = e;
-                    console.warn('[ProductSearch] primary endpoint failed, trying fallback:', e.status || e.message);
-                }
+                let attempts = [];
 
-                if (!raw) {
-                    // Fallback do legacy v2.
+                // 1) world.openfoodfacts.org/api/v2/search (ma CORS, gdy żyje)
+                try {
                     const params = new URLSearchParams({
                         search_terms: query,
                         fields: FIELDS,
@@ -2577,15 +2623,43 @@
                         lc: 'pl',
                         json: '1'
                     });
-                    try {
-                        raw = await fetchJSON(ENDPOINT_SEARCH_FALLBACK + '?' + params.toString(), signal);
-                    } catch (e) {
-                        // Oba padły — rzucamy bardziej informacyjny błąd.
-                        const err = new Error('Oba serwery wyszukiwania niedostępne');
-                        err.status = (primaryErr && primaryErr.status) || e.status;
-                        err.bodyPreview = (primaryErr && primaryErr.bodyPreview) || e.bodyPreview;
-                        throw err;
+                    raw = await fetchJSON(ENDPOINT_V2 + '?' + params.toString(), signal);
+                } catch (e) {
+                    attempts.push('v2: ' + (e.status || e.message));
+                    console.warn('[ProductSearch] world.openfoodfacts.org padło:', e.status || e.message);
+                }
+
+                // 2) search.openfoodfacts.org przez CORS proxy (gdy world.* pada).
+                //    Próbujemy każdego proxy z listy aż któryś dowiezie odpowiedź.
+                if (!raw) {
+                    const target = ENDPOINT_SEARCHALIC + '?' + new URLSearchParams({
+                        q: query,
+                        fields: FIELDS,
+                        page_size: '50',
+                        langs: 'pl,en'
+                    }).toString();
+                    for (let i = 0; i < CORS_PROXIES.length; i++) {
+                        if (signal && signal.aborted) break;
+                        try {
+                            raw = await fetchJSON(CORS_PROXIES[i](target), signal);
+                            if (raw) break;
+                        } catch (e) {
+                            attempts.push('proxy' + (i+1) + ': ' + (e.status || e.message));
+                            console.warn('[ProductSearch] proxy #' + (i+1) + ' padło:', e.status || e.message);
+                        }
                     }
+                }
+
+                // 3) Lokalny słownik — zawsze działa, ale ograniczony.
+                if (!raw) {
+                    const localHits = searchLocal(query);
+                    if (localHits.length > 0) {
+                        console.warn('[ProductSearch] używam lokalnego słownika (' + localHits.length + ' produktów)');
+                        return { products: localHits, count: localHits.length, _local: true };
+                    }
+                    const err = new Error('Wszystkie serwery wyszukiwania niedostępne');
+                    err.bodyPreview = attempts.join(' | ');
+                    throw err;
                 }
 
                 const data = normalizeResponse(raw);
@@ -2896,12 +2970,15 @@
                         renderResults(top, query);
                         const wordCount = query.split(/\s+/).filter(w => w.length >= 2).length;
                         const hasFullMatch = slice.some(x => x.matched === wordCount);
+                        const sourceTag = data._local
+                            ? ' · tryb offline (baza niedostępna)'
+                            : '';
                         if (hasFullMatch) {
                             const lbl = top.length === 1 ? 'wynik' : (top.length < 5 ? 'wyniki' : 'wyników');
-                            setMeta(`Znaleziono ${top.length} ${lbl}`);
+                            setMeta(`Znaleziono ${top.length} ${lbl}${sourceTag}`);
                         } else {
                             const bestMatched = Math.max(...slice.map(x => x.matched));
-                            setMeta(`Brak idealnego dopasowania — pokazuję ${top.length} częściowych (${bestMatched}/${wordCount} słów)`);
+                            setMeta(`Częściowe dopasowanie: ${top.length} wyników (${bestMatched}/${wordCount} słów)${sourceTag}`);
                         }
                     } else if (raw.length === 0) {
                         renderEmpty('Brak wyników', `Baza OpenFoodFacts nie zna „${query}". Spróbuj innej nazwy lub dodaj ręcznie poniżej.`);
