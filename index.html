@@ -2395,12 +2395,14 @@
                 u => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u)
             ];
             const FIELDS = 'code,product_name,product_name_pl,product_name_en,brands,nutriments';
-            const TIMEOUT_MS  = 12000;
-            const RETRY_LIMIT = 3;
-            const DEBOUNCE_MS = 300;
+            const TIMEOUT_MS  = 6500;
+            const RETRY_LIMIT = 2;
+            const DEBOUNCE_MS = 260;
             const MIN_QUERY   = 2;
-            const MAX_RESULTS = 12;
+            const MAX_RESULTS = 30;
             const QUICK_GRAMS = [50, 100, 200];
+            const NEGATIVE_CACHE_TTL_MS = 15000;
+            const DEBUG_SEARCH = false;
 
             // Cache w pamięci sesji (LRU-ish, prosta wersja)
             const cacheSearch  = new Map();
@@ -2418,6 +2420,7 @@
             let activeAbort = null;
             let activeQuery = '';
             let debounceId  = null;
+            let activeSearchSeq = 0;
 
             // ----- Helpers ------------------------------------------------------
             const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -2444,6 +2447,11 @@
                     const oldest = map.keys().next().value;
                     map.delete(oldest);
                 }
+            }
+
+            function logSearchDebug() {
+                if (!DEBUG_SEARCH) return;
+                try { console.debug.apply(console, ['[ProductSearch]'].concat([].slice.call(arguments))); } catch (_) {}
             }
 
             // Polski-friendly normalizator (do scoringu)
@@ -2529,6 +2537,13 @@
                         clearTimeout(tid);
                         if (externalSignal) externalSignal.removeEventListener('abort', onExternalAbort);
                         if (externalSignal && externalSignal.aborted) throw e;
+                        if (e && e.name === 'AbortError' && externalSignal && !externalSignal.aborted) {
+                            const timeoutErr = new Error('Timeout');
+                            timeoutErr.status = 408;
+                            lastErr = timeoutErr;
+                            if (i < RETRY_LIMIT - 1) await sleep(260 * Math.pow(2, i));
+                            continue;
+                        }
                         lastErr = e;
                         if (e && e.name === 'AbortError') break;
                         if (i < RETRY_LIMIT - 1) await sleep(500 * Math.pow(2, i));
@@ -2631,7 +2646,14 @@
             // Pojedyncze zapytanie z trójwarstwową strategią + równoległym brand search.
             async function searchOnce(query, signal) {
                 const cacheKey = 'q=' + query;
-                if (cacheSearch.has(cacheKey)) return cacheSearch.get(cacheKey);
+                const cached = cacheSearch.get(cacheKey);
+                if (cached && (!cached.expiresAt || cached.expiresAt > Date.now())) {
+                    logSearchDebug('cache hit', cacheKey, cached.data && cached.data._source || 'memory');
+                    return cached.data;
+                }
+                if (cached && cached.expiresAt && cached.expiresAt <= Date.now()) {
+                    cacheSearch.delete(cacheKey);
+                }
 
                 let raw = null;
                 let attempts = [];
@@ -2670,7 +2692,7 @@
                     }
                 } catch (e) {
                     attempts.push('v2: ' + (e.status || e.message));
-                    console.warn('[ProductSearch] world.openfoodfacts.org padło:', e.status || e.message);
+                    logSearchDebug('v2 failed', e.status || e.message);
                 }
 
                 // 2) search.openfoodfacts.org przez CORS proxy (gdy world.* pada).
@@ -2689,7 +2711,7 @@
                             if (raw) break;
                         } catch (e) {
                             attempts.push('proxy' + (i+1) + ': ' + (e.status || e.message));
-                            console.warn('[ProductSearch] proxy #' + (i+1) + ' padło:', e.status || e.message);
+                            logSearchDebug('proxy failed', i + 1, e.status || e.message);
                         }
                     }
                 }
@@ -2698,16 +2720,37 @@
                 if (!raw) {
                     const localHits = searchLocal(query);
                     if (localHits.length > 0) {
-                        console.warn('[ProductSearch] używam lokalnego słownika (' + localHits.length + ' produktów)');
-                        return { products: localHits, count: localHits.length, _local: true };
+                        logSearchDebug('local fallback hits', localHits.length);
+                        const localData = {
+                            products: localHits,
+                            count: localHits.length,
+                            _local: true,
+                            _source: 'offline-local',
+                            _attempts: attempts
+                        };
+                        lruSet(cacheSearch, cacheKey, { data: localData }, 120);
+                        return localData;
                     }
                     const err = new Error('Wszystkie serwery wyszukiwania niedostępne');
                     err.bodyPreview = attempts.join(' | ');
+                    lruSet(cacheSearch, cacheKey, {
+                        data: { products: [], count: 0, _source: 'negative-cache', _attempts: attempts },
+                        expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS
+                    }, 120);
                     throw err;
                 }
 
                 const data = normalizeResponse(raw);
-                if (data.products.length > 0) lruSet(cacheSearch, cacheKey, data, 100);
+                data._source = attempts.length ? 'fallback-online' : 'online';
+                data._attempts = attempts;
+                if (data.products.length > 0) {
+                    lruSet(cacheSearch, cacheKey, { data }, 120);
+                } else {
+                    lruSet(cacheSearch, cacheKey, {
+                        data,
+                        expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS
+                    }, 120);
+                }
                 return data;
             }
 
@@ -2720,13 +2763,13 @@
                 const hasResults = (d) => Array.isArray(d && d.products) && d.products.length > 0;
 
                 const data = await searchOnce(query, signal);
-                if (hasResults(data)) return data;
+                const variants = [data];
 
                 // Fallback A: wildcard dla niedokończonych krótkich fraz ("strac" -> "strac*")
                 if (!query.endsWith('*') && query.length <= 8 && !query.includes(' ')) {
                     try {
                         const dWild = await searchOnce(query + '*', signal);
-                        if (hasResults(dWild)) return dWild;
+                        if (hasResults(dWild)) variants.push(dWild);
                     } catch (_) { /* spróbuj kolejnego */ }
                 }
 
@@ -2738,11 +2781,36 @@
                     if (longest && longest.toLowerCase() !== query.toLowerCase()) {
                         try {
                             const dWord = await searchOnce(longest, signal);
-                            if (hasResults(dWord)) return dWord;
+                            if (hasResults(dWord)) variants.push(dWord);
                         } catch (_) { /* zwracamy oryginal */ }
                     }
                 }
-                return data;
+                // Fallback C: niedokończony ostatni token (np. "serek piatnica str")
+                // nie powinien usuwać dobrych trafień dla wcześniejszych słów.
+                const qWords = query.split(/\s+/).filter(Boolean);
+                if (qWords.length >= 2) {
+                    const last = qWords[qWords.length - 1];
+                    if (last.length <= 4) {
+                        const withoutLast = qWords.slice(0, -1).join(' ').trim();
+                        if (withoutLast.length >= MIN_QUERY) {
+                            try {
+                                const dNoTail = await searchOnce(withoutLast, signal);
+                                if (hasResults(dNoTail)) variants.push(dNoTail);
+                            } catch (_) { /* zostawiamy wcześniejsze wyniki */ }
+                        }
+                    }
+                }
+                if (variants.length === 1) return data;
+                let merged = [];
+                for (const v of variants) merged = mergeProducts(merged, v.products || []);
+                const source = variants.some(v => v && v._local) ? 'offline-local' : 'fallback-online';
+                return {
+                    products: merged,
+                    count: merged.length,
+                    _source: source,
+                    _local: source === 'offline-local',
+                    _partialFallback: true
+                };
             }
 
             // BARCODE LOOKUP
@@ -2759,6 +2827,24 @@
                 if (word.length >= 6) return word.slice(0, -2);
                 if (word.length >= 5) return word.slice(0, -1);
                 return word;
+            }
+
+            function withinOneEdit(a, b) {
+                if (!a || !b) return false;
+                if (a === b) return true;
+                const la = a.length, lb = b.length;
+                if (Math.abs(la - lb) > 1) return false;
+                let i = 0, j = 0, edits = 0;
+                while (i < la && j < lb) {
+                    if (a[i] === b[j]) { i++; j++; continue; }
+                    edits++;
+                    if (edits > 1) return false;
+                    if (la > lb) i++;
+                    else if (lb > la) j++;
+                    else { i++; j++; }
+                }
+                if (i < la || j < lb) edits++;
+                return edits <= 1;
             }
 
             function score(produkt, query) {
@@ -2778,6 +2864,7 @@
                 let matchedCount = 0;
                 for (const w of words) {
                     const st = stem(w);
+                    const isShortToken = w.length <= 3;
                     let best = -1;
                     let bestField = -1; // 0..2 = pole nazwy, 3 = brand
                     for (let i = 0; i < haystack.length; i++) {
@@ -2786,12 +2873,13 @@
                         let s = -1;
                         if (t === w) s = 0;
                         else if (t.startsWith(w + ' ')) s = 1;
-                        else if (t.startsWith(st)) s = 2;
+                        else if (t.startsWith(st)) s = isShortToken ? 1 : 2;
                         else {
                             const subs = t.split(/[^a-z0-9]+/);
                             if (subs.some(x => x === w)) s = 3;
-                            else if (subs.some(x => x.startsWith(st))) s = 4;
-                            else if (t.includes(st)) s = 5;
+                            else if (subs.some(x => x.startsWith(st))) s = isShortToken ? 3 : 4;
+                            else if (t.includes(st)) s = isShortToken ? 4 : 5;
+                            else if (!isShortToken && subs.some(x => withinOneEdit(x, w) || withinOneEdit(x, st))) s = 6;
                         }
                         if (s >= 0) {
                             // Marka: nie karzemy. Dokładne trafienie marki ("Piątnica")
@@ -2808,7 +2896,7 @@
                         matchedCount++;
                         qualityPenalty += best;
                     } else {
-                        qualityPenalty += 20; // duża, ale nieblokująca kara za brak słowa
+                        qualityPenalty += isShortToken ? 12 : 20; // krótkie tokeny mniej karzące
                     }
                 }
                 if (matchedCount === 0) return null;
@@ -2996,13 +3084,14 @@
                 cancelInFlight();
                 activeAbort = new AbortController();
                 const localCtrl = activeAbort;
+                const localSeq = ++activeSearchSeq;
                 activeQuery = query;
                 setLoading(true);
                 setMeta('');
 
                 try {
                     const data = await searchByName(query, localCtrl.signal);
-                    if (localCtrl.signal.aborted || activeQuery !== query) return;
+                    if (localCtrl.signal.aborted || activeQuery !== query || localSeq !== activeSearchSeq) return;
 
                     const raw = Array.isArray(data && data.products) ? data.products : [];
                     const ranked = [];
@@ -3022,42 +3111,44 @@
                         const wordCount = query.split(/\s+/).filter(w => w.length >= 2).length;
                         const hasFullMatch = slice.some(x => x.matched === wordCount);
                         const sourceTag = data._local
-                            ? ' · tryb offline (baza niedostępna)'
-                            : '';
+                            ? ' · tryb offline'
+                            : (data._partialFallback ? ' · tryb mieszany' : '');
                         if (hasFullMatch) {
                             const lbl = top.length === 1 ? 'wynik' : (top.length < 5 ? 'wyniki' : 'wyników');
                             setMeta(`Znaleziono ${top.length} ${lbl}${sourceTag}`);
                         } else {
                             const bestMatched = Math.max(...slice.map(x => x.matched));
-                            setMeta(`Częściowe dopasowanie: ${top.length} wyników (${bestMatched}/${wordCount} słów)${sourceTag}`);
+                            setMeta(`Pokazuję najlepsze częściowe wyniki: ${top.length} (${bestMatched}/${wordCount} słów)${sourceTag}`);
                         }
                     } else if (raw.length === 0) {
-                        renderEmpty('Brak wyników', `Baza OpenFoodFacts nie zna „${query}". Spróbuj innej nazwy lub dodaj ręcznie poniżej.`);
-                        setMeta('');
+                        renderEmpty('Brak wyników', `Nie znaleziono produktów dla „${query}". Spróbuj innej frazy lub dodaj ręcznie.`);
+                        if (data && data._source === 'negative-cache') setMeta('Chwilowo brak odpowiedzi z bazy - spróbuj ponownie za moment.');
+                        else setMeta('');
                     } else {
-                        renderEmpty('Brak trafień', `Żaden wynik nie pasuje do „${query}". Zmień frazę lub dodaj ręcznie poniżej.`);
-                        setMeta('');
+                        renderEmpty('Brak trafień', `Nie ma idealnego dopasowania dla „${query}". Spróbuj krótszej nazwy lub samej marki.`);
+                        setMeta('Brak pełnych trafień - spróbuj doprecyzować zapytanie.');
                     }
                 } catch (e) {
-                    if (localCtrl.signal.aborted) return;
+                    if (localCtrl.signal.aborted || localSeq !== activeSearchSeq) return;
                     console.error('[ProductSearch] błąd dla zapytania', JSON.stringify(query), e);
                     setMeta('');
                     let title;
                     let detail = '';
                     if (e && e.name === 'AbortError') {
-                        title = 'Przekroczono czas oczekiwania';
+                        title = 'Przerwano poprzednie wyszukiwanie';
                     } else if (e && e.status) {
                         if (e.status === 429) title = 'Baza jest chwilowo zajęta (limit zapytań)';
-                        else if (e.status >= 500) title = `Baza nie odpowiada (HTTP ${e.status})`;
+                        else if (e.status === 408) title = 'Serwer odpowiada zbyt wolno';
+                        else if (e.status >= 500) title = `Chwilowy problem bazy (HTTP ${e.status})`;
                         else title = `Błąd HTTP ${e.status}`;
                         if (e.bodyPreview) detail = e.bodyPreview;
                     } else {
-                        title = 'Brak połączenia z bazą';
+                        title = 'Nie udało się pobrać wyników';
                         if (e && e.message) detail = e.message;
                     }
                     renderError(title, query, detail);
                 } finally {
-                    if (!localCtrl.signal.aborted) setLoading(false);
+                    if (!localCtrl.signal.aborted && localSeq === activeSearchSeq) setLoading(false);
                 }
             }
 
@@ -3065,6 +3156,7 @@
                 if (debounceId) { clearTimeout(debounceId); debounceId = null; }
                 if (activeAbort) { try { activeAbort.abort(); } catch (_) {} activeAbort = null; }
                 activeQuery = '';
+                activeSearchSeq++;
             }
 
             // ----- Listenery wejścia -------------------------------------------
